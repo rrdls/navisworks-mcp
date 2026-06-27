@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Revit MCP</Name>
+    <Assembly>{{ASSEMBLY_PATH}}</Assembly>
+    <AddInId>8C8A7F0D-9E9E-4C67-B7D4-2E6D67E9A172</AddInId>
+    <FullClassName>RevitMcpAddin.App</FullClassName>
+    <VendorId>RRDLS</VendorId>
+    <VendorDescription>Local MCP bridge for Revit</VendorDescription>
+  </AddIn>
+</RevitAddIns>
+

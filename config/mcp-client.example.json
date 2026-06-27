@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "revit-mcp": {
+      "command": "C:\\path\\to\\revit-mcp\\.venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "revit_mcp.server"
+      ],
+      "env": {
+        "REVIT_MCP_HOST": "127.0.0.1",
+        "REVIT_MCP_PORT": "8765"
+      }
+    }
+  }
+}
+
