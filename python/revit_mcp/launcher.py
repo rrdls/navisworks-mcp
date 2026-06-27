@@ -70,6 +70,7 @@ class Launcher(tk.Tk):
         self.tunnel_status = tk.StringVar(value="Tunnel: stopped")
         self.public_url = tk.StringVar(value="")
         self.tunnel_kind = tk.StringVar(value="cloudflared")
+        self.tunnel_exit_reported = False
 
         self._build_ui()
         self.after(200, self._drain_output)
@@ -79,7 +80,7 @@ class Launcher(tk.Tk):
         root.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(root, text="Revit MCP", font=("Segoe UI", 18, "bold")).pack(anchor=tk.W)
-        ttk.Label(root, text="Start the local MCP server, create a tunnel, then copy the /mcp URL into ChatGPT.").pack(
+        ttk.Label(root, text="Start the local MCP server, create a tunnel, then copy the /mcp URL into your MCP client.").pack(
             anchor=tk.W, pady=(2, 14)
         )
 
@@ -101,7 +102,7 @@ class Launcher(tk.Tk):
 
         url_row = ttk.Frame(root)
         url_row.pack(fill=tk.X, pady=(4, 10))
-        ttk.Label(url_row, text="ChatGPT MCP URL:").pack(anchor=tk.W)
+        ttk.Label(url_row, text="MCP URL:").pack(anchor=tk.W)
         url_entry = ttk.Entry(url_row, textvariable=self.public_url)
         url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, pady=(4, 0))
         ttk.Button(url_row, text="Copy", command=self.copy_url).pack(side=tk.LEFT, padx=(8, 0), pady=(4, 0))
@@ -160,6 +161,7 @@ class Launcher(tk.Tk):
 
     def start_tunnel(self) -> None:
         if self.tunnel and self.tunnel.running():
+            self._handle_line("Tunnel is already running or still starting.")
             return
 
         if not port_is_open("127.0.0.1", int(HTTP_PORT)):
@@ -174,12 +176,20 @@ class Launcher(tk.Tk):
             command = [self._tool_path("ngrok.exe", "ngrok"), "http", HTTP_PORT]
 
         self.tunnel = ProcessPump(command, os.environ.copy(), self.output)
+        self.tunnel_exit_reported = False
+        self.public_url.set("")
         try:
+            self._handle_line("Starting tunnel command: " + " ".join(command))
             self.tunnel.start()
             self.tunnel_status.set(f"Tunnel: starting ({tool})")
         except FileNotFoundError:
+            self.tunnel_status.set("Tunnel: tool not found")
             messagebox.showerror("Tunnel tool not found", f"Could not find {tool}. Install it or place it next to this app.")
             self._handle_line(f"Could not find tunnel command: {tool}")
+        except Exception as ex:
+            self.tunnel_status.set("Tunnel: failed")
+            messagebox.showerror("Tunnel failed", str(ex))
+            self._handle_line(f"Could not start tunnel: {ex}")
 
     def stop_tunnel(self) -> None:
         if self.tunnel:
@@ -206,6 +216,7 @@ class Launcher(tk.Tk):
             except queue.Empty:
                 break
             self._handle_line(line)
+        self._refresh_process_status()
         self.after(200, self._drain_output)
 
     def _handle_line(self, line: str) -> None:
@@ -221,6 +232,22 @@ class Launcher(tk.Tk):
         if url:
             self.public_url.set(url.rstrip("/") + HTTP_PATH)
             self.tunnel_status.set("Tunnel: running")
+
+    def _refresh_process_status(self) -> None:
+        if not self.tunnel or not self.tunnel.process or self.tunnel_exit_reported:
+            return
+
+        exit_code = self.tunnel.process.poll()
+        if exit_code is None:
+            return
+
+        self.tunnel_exit_reported = True
+        if self.public_url.get():
+            self.tunnel_status.set("Tunnel: stopped")
+            self._handle_line(f"Tunnel process stopped with exit code {exit_code}.")
+        else:
+            self.tunnel_status.set("Tunnel: failed")
+            self._handle_line(f"Tunnel process exited before publishing a URL. Exit code: {exit_code}.")
 
     def _extract_public_url(self, line: str) -> str | None:
         match = re.search(r"https://[a-zA-Z0-9.-]+(?:trycloudflare\.com|ngrok-free\.app)", line)
