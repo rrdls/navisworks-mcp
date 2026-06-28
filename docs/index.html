@@ -5,18 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Navisworks MCP conecta assistentes IA compatíveis com MCP ao Autodesk Navisworks com servidor local, plugin Navisworks e tunnel opcional."
+      content="Navisworks MCP conecta clientes MCP ao Autodesk Navisworks para inspecionar modelos, selecoes, propriedades e contexto do documento."
     />
     <title>Navisworks MCP</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="site-header">
-      <nav class="nav">
-        <a class="brand" href="#top">Navisworks MCP</a>
+      <nav class="nav" aria-label="Navegacao principal">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Navisworks MCP
+        </a>
         <div class="nav-links">
-          <a href="#install">Instalação</a>
-          <a href="#test">Teste</a>
+          <a href="#workflow">Fluxo</a>
+          <a href="#capabilities">Recursos</a>
+          <a href="#download">Download</a>
           <a href="https://github.com/rrdls/navisworks-mcp" rel="noreferrer">GitHub</a>
         </div>
       </nav>
@@ -25,71 +29,134 @@
     <main id="top">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">[ local-first · navisworks coordination · mcp ]</p>
+          <p class="eyebrow">Autodesk Navisworks · MCP local · Windows</p>
           <h1>Navisworks MCP</h1>
           <p class="lede">
-            Execute snippets C# focados dentro do Autodesk Navisworks a partir de um cliente MCP, usando um servidor local e um plugin carregado no Navisworks.
+            Conecte assistentes compativeis com MCP ao Autodesk Navisworks para consultar contexto do documento,
+            selecoes e propriedades do modelo por meio de snippets C# focados.
           </p>
-          <div class="hero-actions">
-            <a class="button primary" href="#install">Começar</a>
-            <a class="button secondary" href="https://github.com/rrdls/navisworks-mcp" rel="noreferrer">GitHub</a>
+          <div class="release-row" aria-label="Release atual">
+            <span>v0.1.0</span>
+            <span>Navisworks Manage 2024</span>
+            <span>Instalador Windows</span>
+          </div>
+          <div class="hero-actions" id="download">
+            <a
+              class="button primary"
+              href="https://github.com/rrdls/navisworks-mcp/releases/download/navisworks-v0.1.0/NavisworksMcpSetup.exe"
+              rel="noreferrer"
+            >
+              Baixar instalador
+            </a>
+            <a
+              class="button secondary"
+              href="https://github.com/rrdls/navisworks-mcp/releases/tag/navisworks-v0.1.0"
+              rel="noreferrer"
+            >
+              Ver release v0.1.0
+            </a>
           </div>
         </div>
-        <div class="terminal-visual" aria-label="Demonstração visual do Navisworks MCP">
-          <div class="terminal-bar">
-            <span>~/navisworks-mcp/session</span>
+
+        <div class="product-panel" aria-label="Fluxo visual do Navisworks MCP">
+          <div class="window-bar">
+            <span></span>
+            <strong>Navisworks MCP Launcher</strong>
           </div>
-          <div class="terminal-body">
-            <p><span class="green">navisworks-mcp</span> start</p>
-            <p class="muted">MCP server: http://127.0.0.1:8000/mcp</p>
-            <p class="muted">Navisworks bridge: ws://127.0.0.1:8765</p>
-            <p><span class="blue">tool</span> get_navisworks_context</p>
-            <pre>{
+          <div class="launcher-grid">
+            <div class="launcher-status">
+              <span class="status-dot" aria-hidden="true"></span>
+              MCP server: running
+            </div>
+            <div class="launcher-status">
+              <span class="status-dot" aria-hidden="true"></span>
+              Navisworks: addin loaded
+            </div>
+            <div class="launcher-button">Start MCP</div>
+            <div class="launcher-button">Open Navisworks</div>
+          </div>
+          <pre class="terminal-output">get_navisworks_context
+{
   "connected": true,
   "documentTitle": "Coordination.nwd",
   "selectedItemCount": 12
 }</pre>
-          </div>
         </div>
       </section>
 
-      <section class="section" id="install">
-        <div class="section-inner">
-          <h2>Instalação local</h2>
-          <div class="feature-grid">
-            <article class="feature-card">
-              <h3>Plugin Navisworks</h3>
-              <p>O bundle é instalado em `%APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle`.</p>
-            </article>
-            <article class="feature-card">
-              <h3>Servidor MCP</h3>
-              <p>O launcher inicia o servidor local e mostra a URL `/mcp` para usar no cliente MCP.</p>
-            </article>
-            <article class="feature-card">
-              <h3>Tunnel opcional</h3>
-              <p>Cloudflare Tunnel ou ngrok podem publicar o endpoint local quando o cliente MCP exige URL pública.</p>
-            </article>
-          </div>
+      <section class="band" id="workflow">
+        <div class="section-head">
+          <p class="eyebrow">Fluxo recomendado</p>
+          <h2>Abra pelo launcher para carregar o addin corretamente.</h2>
+          <p>
+            O Navisworks nao registra automaticamente este assembly .NET como o Revit fazia. O launcher abre o
+            Navisworks e carrega o addin MCP explicitamente, de forma visivel e previsivel.
+          </p>
+        </div>
+        <div class="steps">
+          <article>
+            <span>1</span>
+            <h3>Instale</h3>
+            <p>Execute <code>NavisworksMcpSetup.exe</code> do release <code>navisworks-v0.1.0</code>.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Inicie o MCP</h3>
+            <p>Abra o launcher e clique em <code>Start MCP</code> para subir <code>http://127.0.0.1:8000/mcp</code>.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Abra o Navisworks</h3>
+            <p>Clique em <code>Open Navisworks</code>. Se o Navisworks ja estiver aberto, use <code>Load Addin</code>.</p>
+          </article>
+          <article>
+            <span>4</span>
+            <h3>Valide</h3>
+            <p>Chame <code>get_navisworks_context</code> no cliente MCP e confirme <code>"connected": true</code>.</p>
+          </article>
         </div>
       </section>
 
-      <section class="section alt" id="test">
-        <div class="section-inner split">
+      <section class="band muted-band" id="capabilities">
+        <div class="section-head">
+          <p class="eyebrow">Uso ideal</p>
+          <h2>Feito para coordenacao e inspecao, nao autoria BIM.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <h3>Contexto do documento</h3>
+            <p>Leia titulo, caminho, versao da API e estado basico do documento ativo.</p>
+          </article>
+          <article>
+            <h3>Selecao e propriedades</h3>
+            <p>Inspecione itens selecionados, propriedades e dados de revisao do modelo federado.</p>
+          </article>
+          <article>
+            <h3>Snippets C# focados</h3>
+            <p>Execute trechos pequenos contra <code>Autodesk.Navisworks.Api.Document</code> com retorno em texto.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="split">
           <div>
-            <p class="eyebrow">primeiro teste</p>
-            <h2>Pergunte ao Navisworks qual documento está aberto.</h2>
-            <p>
-              Depois de iniciar o servidor e abrir ou reiniciar o Navisworks, use um snippet pequeno para validar a conexão.
-            </p>
+            <p class="eyebrow">Limites atuais</p>
+            <h2>O comportamento esperado e explicito.</h2>
           </div>
-          <pre class="code-block">return doc.Title;</pre>
+          <ul class="limits">
+            <li>Validado no Navisworks Manage 2024.</li>
+            <li>O carregamento do addin passa pelo launcher ou <code>load-navisworks-addin.ps1</code>.</li>
+            <li>Nao cria paredes, familias, niveis ou elementos nativos de autoria como no Revit.</li>
+            <li>Snippets devem ser pequenos, focados e preferencialmente de leitura.</li>
+          </ul>
         </div>
       </section>
     </main>
 
     <footer class="footer">
-      <span><span class="status-dot" aria-hidden="true"></span> Navisworks MCP</span>
-      <a href="https://github.com/rrdls/navisworks-mcp" rel="noreferrer">GitHub</a>
+      <span>Navisworks MCP v0.1.0</span>
+      <a href="https://github.com/rrdls/navisworks-mcp" rel="noreferrer">github.com/rrdls/navisworks-mcp</a>
     </footer>
   </body>
 </html>
