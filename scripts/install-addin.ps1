@@ -61,8 +61,38 @@ if (Get-ChildItem -Path $contentsDir -Filter "RevitMcp*" -Recurse -ErrorAction S
     throw "Installed bundle contains stale RevitMcp artifacts."
 }
 
+$programDataBundleRoot = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+$programDataContentsDir = Join-Path $programDataBundleRoot "Contents"
+try {
+    if (Test-Path $programDataBundleRoot) {
+        Remove-Item -Recurse -Force $programDataBundleRoot
+    }
+    New-Item -ItemType Directory -Force -Path $programDataContentsDir | Out-Null
+    Copy-Item -Path (Join-Path $buildDir "*") -Destination $programDataContentsDir -Recurse -Force
+    (Get-Content $templatePath -Raw).Replace("{NAVISWORKS_VERSION}", $NavisworksVersion) | Set-Content -Encoding UTF8 (Join-Path $programDataBundleRoot "PackageContents.xml")
+}
+catch {
+    Write-Warning "Could not install machine-wide ApplicationPlugins bundle. Run PowerShell as Administrator if needed. $($_.Exception.Message)"
+}
+
+$productPluginDir = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcp"
+try {
+    if (Test-Path $productPluginDir) {
+        Remove-Item -Recurse -Force $productPluginDir
+    }
+    New-Item -ItemType Directory -Force -Path $productPluginDir | Out-Null
+    Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginDir -Recurse -Force
+}
+catch {
+    Write-Warning "Could not install to the Navisworks product Plugins folder. Run PowerShell as Administrator if needed. $($_.Exception.Message)"
+}
+
 Write-Host "Installed Navisworks MCP plugin bundle:"
 Write-Host "  $bundleRoot"
+Write-Host "Machine-wide bundle:"
+Write-Host "  $programDataBundleRoot"
+Write-Host "Product plugin folder:"
+Write-Host "  $productPluginDir"
 Write-Host "Assembly:"
 Write-Host "  $(Join-Path $contentsDir 'NavisworksMcpAddin.dll')"
 Write-Host "Target framework:"

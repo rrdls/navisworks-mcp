@@ -4,8 +4,11 @@
   AutodeskProduct="Navisworks"
   Name="Navisworks MCP"
   AppVersion="0.1.0"
+  ProductType="Application"
+  SupportedLocales="Enu"
   ProductCode="{3F964BBE-9345-4DF6-8905-1F1C0698A9F7}">
   <CompanyDetails Name="RRDLS" />
+  <RuntimeRequirements OS="Win64" Platform="Navisworks*" SeriesMin="Nw{NAVISWORKS_VERSION}" SeriesMax="Nw{NAVISWORKS_VERSION}" />
   <Components>
     <RuntimeRequirements OS="Win64" Platform="Navisworks*" SeriesMin="Nw{NAVISWORKS_VERSION}" SeriesMax="Nw{NAVISWORKS_VERSION}" />
     <ComponentEntry

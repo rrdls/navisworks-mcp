@@ -11,7 +11,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\NavisworksMcp
 DefaultGroupName=Navisworks MCP
 DisableProgramGroupPage=yes
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64
 OutputDir=..\dist\installer
 OutputBaseFilename=NavisworksMcpSetup
@@ -36,6 +36,19 @@ Filename: "{app}\app\NavisworksMcpLauncher.exe"; Description: "Launch Navisworks
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\NavisworksMcp"
 Type: filesandordirs; Name: "{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+Type: filesandordirs; Name: "{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2021\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2022\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2023\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2024\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2025\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2026\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2021\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2022\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2023\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2024\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2025\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2026\Plugins\NavisworksMcp"
 
 [Code]
 procedure CopyDirectoryContents(const SourceDir, DestDir: string);
@@ -64,11 +77,22 @@ end;
 procedure InstallBundleForVersion(const Version: string);
 var
   ApiPath: string;
+  InstallDir: string;
   SourceDir: string;
   BundleDir: string;
   ContentsDir: string;
+  ProgramDataBundleDir: string;
+  ProgramDataContentsDir: string;
+  ProductPluginDir: string;
 begin
-  ApiPath := ExpandConstant('{pf}\Autodesk\Navisworks Manage ' + Version + '\Autodesk.Navisworks.Api.dll');
+  InstallDir := ExpandConstant('{pf}\Autodesk\Navisworks Manage ' + Version);
+  ApiPath := InstallDir + '\Autodesk.Navisworks.Api.dll';
+  if not FileExists(ApiPath) then
+  begin
+    InstallDir := ExpandConstant('{pf}\Autodesk\Navisworks Simulate ' + Version);
+    ApiPath := InstallDir + '\Autodesk.Navisworks.Api.dll';
+  end;
+
   SourceDir := ExpandConstant('{app}\addins\' + Version);
 
   if FileExists(ApiPath) and DirExists(SourceDir) then
@@ -79,6 +103,18 @@ begin
     ForceDirectories(ContentsDir);
     CopyDirectoryContents(SourceDir + '\Contents', ContentsDir);
     FileCopy(SourceDir + '\PackageContents.xml', BundleDir + '\PackageContents.xml', False);
+
+    ProgramDataBundleDir := ExpandConstant('{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle');
+    ProgramDataContentsDir := ProgramDataBundleDir + '\Contents';
+    DelTree(ProgramDataBundleDir, True, True, True);
+    ForceDirectories(ProgramDataContentsDir);
+    CopyDirectoryContents(SourceDir + '\Contents', ProgramDataContentsDir);
+    FileCopy(SourceDir + '\PackageContents.xml', ProgramDataBundleDir + '\PackageContents.xml', False);
+
+    ProductPluginDir := InstallDir + '\Plugins\NavisworksMcp';
+    DelTree(ProductPluginDir, True, True, True);
+    ForceDirectories(ProductPluginDir);
+    CopyDirectoryContents(SourceDir + '\Contents', ProductPluginDir);
   end;
 end;
 
