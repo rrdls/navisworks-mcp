@@ -131,25 +131,61 @@ def get_navisworks_mcp_prompt() -> str:
 def get_navisworks_context(timeout_seconds: float = 30) -> str:
     """Return Navisworks version and active document context for version-aware code generation."""
     code = """
-Func<object, string, string> getStringProperty = (target, name) =>
-{
-    if (target == null) return "";
-    var property = target.GetType().GetProperty(name);
-    var value = property == null ? null : property.GetValue(target, null);
-    return value == null ? "" : value.ToString();
-};
-
 var appType = typeof(Autodesk.Navisworks.Api.Application);
 var versionProperty = appType.GetProperty("Version");
-var appVersion = versionProperty == null ? "" : (versionProperty.GetValue(null, null) ?? "").ToString();
-var title = getStringProperty(doc, "Title");
-var fileName = getStringProperty(doc, "FileName");
+object versionValue = null;
+if (versionProperty != null)
+{
+    versionValue = versionProperty.GetValue(null, null);
+}
+var appVersion = versionValue == null ? "" : versionValue.ToString();
+
+object titleValue = null;
+var titleProperty = doc.GetType().GetProperty("Title");
+if (titleProperty != null)
+{
+    titleValue = titleProperty.GetValue(doc, null);
+}
+var title = titleValue == null ? "" : titleValue.ToString();
+
+object fileNameValue = null;
+var fileNameProperty = doc.GetType().GetProperty("FileName");
+if (fileNameProperty != null)
+{
+    fileNameValue = fileNameProperty.GetValue(doc, null);
+}
+var fileName = fileNameValue == null ? "" : fileNameValue.ToString();
+
 var selectionCount = 0;
 try
 {
-    var currentSelection = doc.GetType().GetProperty("CurrentSelection")?.GetValue(doc, null);
-    var selectedItems = currentSelection?.GetType().GetProperty("SelectedItems")?.GetValue(currentSelection, null);
-    var countValue = selectedItems?.GetType().GetProperty("Count")?.GetValue(selectedItems, null);
+    object currentSelection = null;
+    var currentSelectionProperty = doc.GetType().GetProperty("CurrentSelection");
+    if (currentSelectionProperty != null)
+    {
+        currentSelection = currentSelectionProperty.GetValue(doc, null);
+    }
+
+    object selectedItems = null;
+    if (currentSelection != null)
+    {
+        var selectedItemsProperty = currentSelection.GetType().GetProperty("SelectedItems");
+        if (selectedItemsProperty != null)
+        {
+            selectedItems = selectedItemsProperty.GetValue(currentSelection, null);
+        }
+    }
+
+    object countValue = null;
+    if (selectedItems != null)
+    {
+        var countProperty = selectedItems.GetType().GetProperty("Count");
+        if (countProperty != null)
+        {
+            countValue = countProperty.GetValue(selectedItems, null);
+        }
+    }
+
     selectionCount = countValue == null ? 0 : Convert.ToInt32(countValue);
 }
 catch
@@ -157,13 +193,13 @@ catch
     selectionCount = 0;
 }
 
-return "{"
-    + "\\\"connected\\\":true,"
-    + "\\\"navisworksVersion\\\":\\\"" + appVersion.Replace("\\\\", "\\\\\\\\").Replace("\\\"", "\\\\\\\"") + "\\\","
-    + "\\\"documentTitle\\\":\\\"" + title.Replace("\\\\", "\\\\\\\\").Replace("\\\"", "\\\\\\\"") + "\\\","
-    + "\\\"documentPath\\\":\\\"" + fileName.Replace("\\\\", "\\\\\\\\").Replace("\\\"", "\\\\\\\"") + "\\\","
-    + "\\\"selectedItemCount\\\":" + selectionCount.ToString()
-    + "}";
+var context = new Dictionary<string, object>();
+context["connected"] = true;
+context["navisworksVersion"] = appVersion;
+context["documentTitle"] = title;
+context["documentPath"] = fileName;
+context["selectedItemCount"] = selectionCount;
+return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(context);
 """
     response = get_bridge().run_code(code, timeout_seconds=timeout_seconds)
     if response.ok:

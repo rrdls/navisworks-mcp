@@ -22,6 +22,10 @@ if ($InstallDependencies) {
     & $pythonExe -m pip install -e $pythonDir
 }
 
+Get-ChildItem -Path $venvDir -Recurse -Force -Filter "*:Zone.Identifier" -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+& $pythonExe -c "import jsonschema_specifications; list(jsonschema_specifications.REGISTRY)"
+
 $env:NAVISWORKS_MCP_HOST = $HostAddress
 $env:NAVISWORKS_MCP_PORT = "$Port"
 if (![string]::IsNullOrWhiteSpace($Token)) {

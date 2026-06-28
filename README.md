@@ -94,6 +94,8 @@ This creates:
 
 ```text
 %APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle
+C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcp.Plugin.dll
+C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcpProbe.Plugin.dll
 ```
 
 Start MCP over HTTP:
@@ -113,6 +115,18 @@ The Navisworks plugin connects locally to:
 ```text
 ws://127.0.0.1:8765
 ```
+
+Navisworks does not auto-register external .NET plugin assemblies from the MCP bundle on every install. Use the launcher
+or loader script to open Navisworks and register the addin explicitly:
+
+```powershell
+.\scripts\load-navisworks-addin.ps1 -NavisworksInstallDir "C:\Program Files\Autodesk\Navisworks Manage 2026" -StartNavisworks
+```
+
+The loader prefers the user bundle under `%APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle`, so it does not
+require administrator permissions for normal testing.
+
+In the packaged app, click `Start MCP`, then `Open Navisworks`.
 
 To test the Python/WebSocket path without Navisworks:
 
@@ -173,15 +187,17 @@ Logs are written to:
 
 ```text
 %LOCALAPPDATA%\NavisworksMcp\addin.log
+%LOCALAPPDATA%\NavisworksMcp\probe.log
 ```
 
 If Navisworks does not connect:
 
 - Start the MCP server first.
-- Open or restart Navisworks after installing the bundle.
+- Open Navisworks through the `Open Navisworks` button in the launcher, or run `scripts\load-navisworks-addin.ps1`.
 - Use the `Navisworks MCP` plugin command only as a manual reconnect fallback.
 - Confirm port `8765` is free.
-- Check the log file above.
+- Check `probe.log` first. If it exists, Navisworks loaded the minimal MCP probe and discovery is working.
+- Check `addin.log` next. If `probe.log` exists but `addin.log` does not, the full MCP addin is failing before startup.
 
 If snippets fail to compile:
 

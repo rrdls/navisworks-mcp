@@ -27,6 +27,10 @@ if ($InstallDependencies) {
     & $pythonExe -m pip install -e $pythonDir
 }
 
+Get-ChildItem -Path $venvDir -Recurse -Force -Filter "*:Zone.Identifier" -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+& $pythonExe -c "import jsonschema_specifications; list(jsonschema_specifications.REGISTRY)"
+
 $env:MCP_TRANSPORT = "streamable-http"
 $env:MCP_HTTP_HOST = $HttpHostAddress
 $env:MCP_HTTP_PORT = "$HttpPort"

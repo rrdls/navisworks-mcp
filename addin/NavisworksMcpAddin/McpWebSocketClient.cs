@@ -1,20 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 
 namespace NavisworksMcpAddin;
 
 public sealed class McpWebSocketClient : IDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JavaScriptSerializer JsonSerializer = new();
 
     private readonly Func<NavisworksCommandRequest, NavisworksCommandResponse> _execute;
     private readonly SynchronizationContext? _syncContext;
@@ -88,7 +85,11 @@ public sealed class McpWebSocketClient : IDisposable
 
     private async Task SendHelloAsync(ClientWebSocket socket)
     {
-        var hello = JsonSerializer.Serialize(new { type = "hello", token = _token }, JsonOptions);
+        var hello = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["type"] = "hello",
+            ["token"] = _token
+        });
         var buffer = Encoding.UTF8.GetBytes(hello);
         await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cts.Token).ConfigureAwait(false);
     }
@@ -116,7 +117,7 @@ public sealed class McpWebSocketClient : IDisposable
             while (!result.EndOfMessage);
 
             var json = Encoding.UTF8.GetString(message.ToArray());
-            var request = JsonSerializer.Deserialize<NavisworksCommandRequest>(json, JsonOptions);
+            var request = DeserializeRequest(json);
             if (request is null || string.IsNullOrWhiteSpace(request.Id) || string.IsNullOrWhiteSpace(request.Code))
             {
                 McpLog.Error($"Ignored invalid MCP request payload: {json}");
@@ -153,6 +154,28 @@ public sealed class McpWebSocketClient : IDisposable
         return completion.Task;
     }
 
+    private static NavisworksCommandRequest? DeserializeRequest(string json)
+    {
+        var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+        if (payload is null)
+        {
+            return null;
+        }
+
+        return new NavisworksCommandRequest
+        {
+            Id = GetString(payload, "id"),
+            Code = GetString(payload, "code")
+        };
+    }
+
+    private static string GetString(Dictionary<string, object> payload, string key)
+    {
+        return payload.TryGetValue(key, out var value) && value is not null
+            ? value.ToString() ?? string.Empty
+            : string.Empty;
+    }
+
     private async Task SendAsync(NavisworksCommandResponse response)
     {
         var socket = _socket;
@@ -161,7 +184,14 @@ public sealed class McpWebSocketClient : IDisposable
             return;
         }
 
-        var json = JsonSerializer.Serialize(response, JsonOptions);
+        var json = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = response.Id,
+            ["ok"] = response.Ok,
+            ["result"] = response.Result,
+            ["error"] = response.Error,
+            ["details"] = response.Details
+        });
         var buffer = Encoding.UTF8.GetBytes(json);
 
         await _sendLock.WaitAsync(_cts.Token).ConfigureAwait(false);

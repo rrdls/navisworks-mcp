@@ -11,8 +11,14 @@ namespace NavisworksMcpAddin;
     ToolTip = "Automatically starts the local MCP bridge for Navisworks.")]
 public sealed class NavisworksMcpEventWatcher : EventWatcherPlugin
 {
+    public NavisworksMcpEventWatcher()
+    {
+        McpLog.Info("Navisworks MCP event watcher instance constructed.");
+    }
+
     public override void OnLoaded()
     {
+        McpLog.Info("Navisworks MCP event watcher OnLoaded reached.");
         McpConnectionManager.Start(SynchronizationContext.Current, "event watcher");
     }
 
@@ -27,10 +33,17 @@ public sealed class NavisworksMcpEventWatcher : EventWatcherPlugin
     "RRDL",
     DisplayName = "Navisworks MCP",
     ToolTip = "Start the local MCP bridge for Navisworks.")]
+[AddInPlugin(AddInLocation.AddIn)]
 public sealed class NavisworksMcpPlugin : AddInPlugin
 {
+    public NavisworksMcpPlugin()
+    {
+        McpLog.Info("Navisworks MCP manual AddInPlugin instance constructed.");
+    }
+
     public override int Execute(params string[] parameters)
     {
+        McpLog.Info("Navisworks MCP manual AddInPlugin Execute reached.");
         McpConnectionManager.Start(SynchronizationContext.Current, "manual command");
         return 0;
     }
@@ -38,6 +51,7 @@ public sealed class NavisworksMcpPlugin : AddInPlugin
 
 public static class McpConnectionManager
 {
+    private const string BuildMarker = "Navisworks MCP addin build: no-system-text-json";
     private static readonly object LockObject = new();
     private static McpWebSocketClient? _webSocketClient;
 
@@ -51,6 +65,7 @@ public static class McpConnectionManager
                 return;
             }
 
+            McpLog.Info(BuildMarker);
             McpLog.Info($"Starting Navisworks MCP plugin. Source: {source}.");
             _webSocketClient = new McpWebSocketClient(ExecuteOne, synchronizationContext);
             _webSocketClient.Start();

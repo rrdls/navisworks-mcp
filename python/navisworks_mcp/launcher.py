@@ -16,6 +16,7 @@ from tkinter import messagebox, ttk
 HTTP_PORT = "8000"
 HTTP_PATH = "/mcp"
 NAVISWORKS_WS_PORT = "8765"
+DEFAULT_NAVISWORKS_2024 = r"C:\Program Files\Autodesk\Navisworks Manage 2024"
 
 
 class ProcessPump:
@@ -69,6 +70,7 @@ class Launcher(tk.Tk):
 
         self.server_status = tk.StringVar(value="MCP server: stopped")
         self.tunnel_status = tk.StringVar(value="Tunnel: stopped")
+        self.navisworks_status = tk.StringVar(value="Navisworks: not loaded")
         self.public_url = tk.StringVar(value="")
         self.tunnel_kind = tk.StringVar(value="cloudflared")
         self.tunnel_exit_reported = False
@@ -89,11 +91,16 @@ class Launcher(tk.Tk):
         status.pack(fill=tk.X)
         ttk.Label(status, textvariable=self.server_status).pack(side=tk.LEFT)
         ttk.Label(status, textvariable=self.tunnel_status).pack(side=tk.LEFT, padx=(24, 0))
+        ttk.Label(status, textvariable=self.navisworks_status).pack(side=tk.LEFT, padx=(24, 0))
 
         controls = ttk.Frame(root)
         controls.pack(fill=tk.X, pady=12)
         ttk.Button(controls, text="Start MCP", command=self.start_server).pack(side=tk.LEFT)
         ttk.Button(controls, text="Stop MCP", command=self.stop_server).pack(side=tk.LEFT, padx=(8, 0))
+
+        ttk.Separator(controls, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=14)
+        ttk.Button(controls, text="Open Navisworks", command=self.open_navisworks).pack(side=tk.LEFT)
+        ttk.Button(controls, text="Load Addin", command=self.load_navisworks_addin).pack(side=tk.LEFT, padx=(8, 0))
 
         ttk.Separator(controls, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=14)
         ttk.Radiobutton(controls, text="Cloudflare", variable=self.tunnel_kind, value="cloudflared").pack(side=tk.LEFT)
@@ -154,6 +161,63 @@ class Launcher(tk.Tk):
         self.server = ProcessPump(command, env, self.output)
         self.server.start()
         self.server_status.set("MCP server: starting")
+
+    def open_navisworks(self) -> None:
+        self._load_navisworks_addin(start_navisworks=True)
+
+    def load_navisworks_addin(self) -> None:
+        self._load_navisworks_addin(start_navisworks=False)
+
+    def _load_navisworks_addin(self, start_navisworks: bool) -> None:
+        if os.name != "nt":
+            self._handle_line("Navisworks addin loading is only available on Windows.")
+            return
+
+        script = self._load_addin_script_path()
+        if not script.exists():
+            self.navisworks_status.set("Navisworks: loader missing")
+            self._handle_line(f"Could not find Navisworks loader script: {script}")
+            return
+
+        command = [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script),
+        ]
+        navisworks_dir = find_navisworks_install_dir()
+        if navisworks_dir:
+            command.extend(["-NavisworksInstallDir", str(navisworks_dir)])
+        if start_navisworks:
+            command.append("-StartNavisworks")
+
+        def run_loader() -> None:
+            self.after(0, self.navisworks_status.set, "Navisworks: loading")
+            self.output.put("Loading Navisworks MCP addin...")
+            try:
+                completed = subprocess.run(
+                    command,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=45,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+            except Exception as ex:
+                self.output.put(f"Could not load Navisworks MCP addin: {ex}")
+                self.after(0, self.navisworks_status.set, "Navisworks: failed")
+                return
+
+            for line in completed.stdout.splitlines():
+                self.output.put(line)
+            if completed.returncode == 0:
+                self.after(0, self.navisworks_status.set, "Navisworks: addin loaded")
+            else:
+                self.after(0, self.navisworks_status.set, "Navisworks: failed")
+
+        threading.Thread(target=run_loader, daemon=True).start()
 
     def stop_server(self) -> None:
         stopped = False
@@ -279,6 +343,11 @@ class Launcher(tk.Tk):
         candidate = base / exe_name
         return str(candidate) if candidate.exists() else fallback
 
+    def _load_addin_script_path(self) -> Path:
+        if getattr(sys, "frozen", False):
+            return Path(sys.executable).with_name("load-navisworks-addin.ps1")
+        return Path(__file__).resolve().parents[2] / "scripts" / "load-navisworks-addin.ps1"
+
 
 def main() -> None:
     app = Launcher()
@@ -291,6 +360,21 @@ def port_is_open(host: str, port: int) -> bool:
             return True
     except OSError:
         return False
+
+
+def find_navisworks_install_dir() -> Path | None:
+    if os.name != "nt":
+        return None
+
+    root = Path(r"C:\Program Files\Autodesk")
+    if root.exists():
+        for pattern in ("Navisworks Manage *", "Navisworks Simulate *"):
+            for candidate in sorted(root.glob(pattern), reverse=True):
+                if (candidate / "Autodesk.Navisworks.Automation.dll").exists():
+                    return candidate
+
+    fallback = Path(DEFAULT_NAVISWORKS_2024)
+    return fallback if fallback.exists() else None
 
 
 def stop_processes_listening_on_ports(ports: list[int], allowed_names: set[str]) -> set[int]:

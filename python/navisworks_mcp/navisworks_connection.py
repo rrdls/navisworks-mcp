@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import websockets
+from websockets.exceptions import ConnectionClosed
 
-from .navisworks_loader import try_load_navisworks_plugin, wait_for
 from .protocol import NavisworksCommand, NavisworksResponse
 
 LOGGER = logging.getLogger("navisworks_mcp.websocket")
@@ -83,10 +83,6 @@ class NavisworksBridge:
         if not self._loop:
             raise RuntimeError("WebSocket loop is not running.")
 
-        if not self.is_connected():
-            try_load_navisworks_plugin()
-            wait_for(self.is_connected, timeout_seconds=5)
-
         command = NavisworksCommand(id=str(uuid.uuid4()), code=code)
         future: ThreadFuture[NavisworksResponse] = asyncio.run_coroutine_threadsafe(
             self._send_and_wait(command),
@@ -138,8 +134,11 @@ class NavisworksBridge:
         LOGGER.info("Navisworks plugin connected.")
 
         try:
-            async for raw_message in websocket:
-                await self._handle_message(raw_message)
+            try:
+                async for raw_message in websocket:
+                    await self._handle_message(raw_message)
+            except ConnectionClosed as exc:
+                LOGGER.info("Navisworks plugin connection closed: %s", exc)
         finally:
             if self._client is websocket:
                 self._client = None

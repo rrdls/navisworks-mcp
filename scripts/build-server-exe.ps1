@@ -17,12 +17,16 @@ if (!(Test-Path $venvDir)) {
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 & $pythonExe -m pip install --upgrade pip
 & $pythonExe -m pip install -e "${pythonDir}[build]"
+Get-ChildItem -Path $venvDir -Recurse -Force -Filter "*:Zone.Identifier" -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
 & $pythonExe -c "import jsonschema_specifications; list(jsonschema_specifications.REGISTRY)"
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 Remove-Item -Force -ErrorAction SilentlyContinue `
     (Join-Path $distDir "NavisworksMcpServer.exe"),
     (Join-Path $distDir "NavisworksMcpLauncher.exe")
+
+Copy-Item -Path (Join-Path $PSScriptRoot "load-navisworks-addin.ps1") -Destination $distDir -Force
 
 & $pythonExe -m PyInstaller `
     --noconfirm `

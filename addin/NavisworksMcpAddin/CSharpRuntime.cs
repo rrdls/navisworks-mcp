@@ -1,12 +1,12 @@
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Autodesk.Navisworks.Api;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CSharp;
 
 namespace NavisworksMcpAddin;
 
@@ -15,29 +15,33 @@ public static class CSharpRuntime
     public static string Execute(string code, Document doc)
     {
         var source = BuildSource(code);
-        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var references = BuildReferences();
-        var compilation = CSharpCompilation.Create(
-            assemblyName: $"NavisworksMcpScript_{Guid.NewGuid():N}",
-            syntaxTrees: new[] { syntaxTree },
-            references: references,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        using var provider = new CSharpCodeProvider();
+        var parameters = new CompilerParameters
+        {
+            GenerateExecutable = false,
+            GenerateInMemory = true,
+            IncludeDebugInformation = false,
+            TreatWarningsAsErrors = false
+        };
+        foreach (var reference in BuildReferences())
+        {
+            parameters.ReferencedAssemblies.Add(reference);
+        }
 
-        using var stream = new MemoryStream();
-        var emitResult = compilation.Emit(stream);
-        if (!emitResult.Success)
+        var compileResult = provider.CompileAssemblyFromSource(parameters, source);
+        if (compileResult.Errors.HasErrors)
         {
             var diagnostics = string.Join(
                 Environment.NewLine,
-                emitResult.Diagnostics
-                    .Where(diagnostic => diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)
-                    .Select(diagnostic => diagnostic.ToString()));
+                compileResult.Errors
+                    .Cast<CompilerError>()
+                    .Where(error => !error.IsWarning)
+                    .Select(error => error.ToString()));
 
             throw new InvalidOperationException($"Compilation failed:{Environment.NewLine}{diagnostics}");
         }
 
-        stream.Position = 0;
-        var assembly = Assembly.Load(stream.ToArray());
+        var assembly = compileResult.CompiledAssembly;
         var scriptType = assembly.GetType("NavisworksMcpRuntime.Script")
             ?? throw new InvalidOperationException("Compiled script type was not found.");
         var script = Activator.CreateInstance(scriptType)
@@ -59,7 +63,7 @@ public static class CSharpRuntime
 
     private static string BuildSource(string code)
     {
-        return $$"""
+        return @"
 using Autodesk.Navisworks.Api;
 using System;
 using System.Collections.Generic;
@@ -71,11 +75,11 @@ namespace NavisworksMcpRuntime
     {
         public string Run(Document doc)
         {
-{{Indent(code, 12)}}
+" + Indent(code, 12) + @"
         }
     }
 }
-""";
+";
     }
 
     private static string Indent(string text, int spaces)
@@ -86,7 +90,7 @@ namespace NavisworksMcpRuntime
             text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').Select(line => prefix + line));
     }
 
-    private static IReadOnlyList<MetadataReference> BuildReferences()
+    private static IReadOnlyList<string> BuildReferences()
     {
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -109,9 +113,6 @@ namespace NavisworksMcpRuntime
             }
         }
 
-        return paths
-            .Select(path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
-            .ToList();
+        return paths.ToList();
     }
 }

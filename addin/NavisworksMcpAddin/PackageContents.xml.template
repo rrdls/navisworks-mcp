@@ -8,11 +8,14 @@
   SupportedLocales="Enu"
   ProductCode="{3F964BBE-9345-4DF6-8905-1F1C0698A9F7}">
   <CompanyDetails Name="RRDLS" />
-  <RuntimeRequirements OS="Win64" Platform="Navisworks*" SeriesMin="Nw{NAVISWORKS_VERSION}" SeriesMax="Nw{NAVISWORKS_VERSION}" />
+  <RuntimeRequirements OS="Win64" />
   <Components>
-    <RuntimeRequirements OS="Win64" Platform="Navisworks*" SeriesMin="Nw{NAVISWORKS_VERSION}" SeriesMax="Nw{NAVISWORKS_VERSION}" />
+    <RuntimeRequirements OS="Win64" />
     <ComponentEntry
       AppName="Navisworks MCP"
       ModuleName="./Contents/NavisworksMcpAddin.dll" />
+    <ComponentEntry
+      AppName="Navisworks MCP Probe"
+      ModuleName="./Contents/NavisworksMcpProbe.dll" />
   </Components>
 </ApplicationPackage>
