@@ -6,13 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($PluginPath)) {
-    $userBundleProbePath = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle\Contents\NavisworksMcpProbe.Plugin.dll"
-    if (Test-Path $userBundleProbePath) {
-        $PluginPath = $userBundleProbePath
-    }
-    else {
-        $PluginPath = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpProbe.Plugin.dll"
-    }
+    $PluginPath = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpAddin.Plugin\NavisworksMcpProbe.Plugin.dll"
 }
 
 $automationDll = Join-Path $NavisworksInstallDir "Autodesk.Navisworks.Automation.dll"

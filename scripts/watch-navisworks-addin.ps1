@@ -1,14 +1,32 @@
 param(
-    [int]$IntervalSeconds = 2
+    [int]$IntervalSeconds = 2,
+    [string]$PluginPath = ""
 )
 
 $ErrorActionPreference = "Continue"
 
 $appDataDir = Join-Path $env:LOCALAPPDATA "NavisworksMcp"
 $logPath = Join-Path $appDataDir "autoloader.log"
-$pluginPath = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle\Contents\NavisworksMcpAddin.Plugin.dll"
 $loadedProcessIds = @{}
 $loadedAutomationDirs = @{}
+
+function Find-PluginPath {
+    $root = "C:\Program Files\Autodesk"
+    foreach ($filter in @("Navisworks Manage *", "Navisworks Simulate *")) {
+        $install = Get-ChildItem -Path $root -Directory -Filter $filter -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+
+        if ($null -ne $install) {
+            $candidate = Join-Path $install.FullName "Plugins\NavisworksMcpAddin.Plugin\NavisworksMcpAddin.Plugin.dll"
+            if (Test-Path $candidate) {
+                return $candidate
+            }
+        }
+    }
+
+    return ""
+}
 
 function Write-AutoloaderLog {
     param([string]$Message)
@@ -20,12 +38,16 @@ function Write-AutoloaderLog {
     }
 }
 
+if ([string]::IsNullOrWhiteSpace($PluginPath)) {
+    $PluginPath = Find-PluginPath
+}
+
 Write-AutoloaderLog "Navisworks MCP autoloader started."
 
 while ($true) {
     try {
-        if (!(Test-Path $pluginPath)) {
-            Write-AutoloaderLog "Plugin DLL is missing: $pluginPath"
+        if (!(Test-Path $PluginPath)) {
+            Write-AutoloaderLog "Plugin DLL is missing: $PluginPath"
             Start-Sleep -Seconds $IntervalSeconds
             continue
         }
@@ -55,14 +77,20 @@ while ($true) {
                 Start-Sleep -Seconds 2
                 $app = [Autodesk.Navisworks.Api.Automation.NavisworksApplication]::TryGetRunningInstance()
             } while ($null -eq $app -and (Get-Date) -lt $deadline)
+
+            if ($null -eq $app) {
+                Write-AutoloaderLog "TryGetRunningInstance failed for PID $($_.Id). Trying Automation constructor."
+                $app = New-Object Autodesk.Navisworks.Api.Automation.NavisworksApplication
+            }
+
             if ($null -eq $app) {
                 Write-AutoloaderLog "Could not attach to running Navisworks PID $($_.Id)."
                 return
             }
 
-            $app.AddPluginAssembly($pluginPath)
+            $app.AddPluginAssembly($PluginPath)
             $loadedProcessIds[$_.Id] = $true
-            Write-AutoloaderLog "Loaded plugin into Navisworks PID $($_.Id): $pluginPath"
+            Write-AutoloaderLog "Loaded plugin into Navisworks PID $($_.Id): $PluginPath"
         }
 
         @($loadedProcessIds.Keys) | ForEach-Object {

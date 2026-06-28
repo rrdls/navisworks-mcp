@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
+using Autodesk.Navisworks.Api;
 using Autodesk.Navisworks.Api.Plugins;
 
 namespace NavisworksMcpAddin;
@@ -21,6 +22,8 @@ public sealed class NavisworksMcpEventWatcher : EventWatcherPlugin
     {
         McpLog.Info("Navisworks MCP event watcher OnLoaded reached.");
         NavisworksMcpRuntime.Initialize();
+        McpLog.Info("Navisworks MCP Tool add-ins commands registered: Start MCP; Stop MCP; Start Public URL; Stop Public URL; Copy Local URL; Copy Public URL; MCP Status; MCP Settings; Open MCP Logs.");
+        NavisworksMcpDiagnostics.LogPluginRecordsIfEnabled();
         if (McpProcessManager.PortIsOpen("127.0.0.1", NavisworksMcpRuntime.WebSocketPort))
         {
             McpConnectionManager.Start(SynchronizationContext.Current, "event watcher");
@@ -32,6 +35,78 @@ public sealed class NavisworksMcpEventWatcher : EventWatcherPlugin
         McpConnectionManager.Stop();
         NavisworksMcpRuntime.NgrokProcess.StopOnShutdown();
         NavisworksMcpRuntime.McpProcess.StopOnShutdown();
+    }
+}
+
+internal static class NavisworksMcpDiagnostics
+{
+    public static void LogPluginRecordsIfEnabled()
+    {
+        var enabled = Environment.GetEnvironmentVariable("NAVISWORKS_MCP_PLUGIN_DIAGNOSTICS");
+        if (!string.Equals(enabled, "1", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        LogPluginRecords();
+    }
+
+    private static void LogPluginRecords()
+    {
+        try
+        {
+            McpLog.Info("Navisworks MCP plugin record diagnostics begin.");
+            foreach (var record in Autodesk.Navisworks.Api.Application.Plugins.PluginRecords)
+            {
+                if (!IsRelevant(record))
+                {
+                    continue;
+                }
+
+                McpLog.Info(
+                    $"PluginRecord: id={record.Id}; name={record.Name}; developerId={record.DeveloperId}; " +
+                    $"displayName={record.DisplayName}; type={record.GetType().FullName}; isLoaded={record.IsLoaded}; " +
+                    $"hasFailedCreate={record.HasFailedCreate}; hasAttemptedCreate={record.HasAttemptedCreate}");
+
+                if (record is CommandHandlerPluginRecord commandRecord)
+                {
+                    foreach (var command in commandRecord.CommandRecords)
+                    {
+                        McpLog.Info($"  CommandRecord: id={command.Id}; displayName={command.DisplayName}");
+                    }
+
+                    foreach (var ribbonTab in commandRecord.RibbonTabRecords)
+                    {
+                        McpLog.Info($"  RibbonTabRecord: id={ribbonTab.Id}; displayName={ribbonTab.DisplayName}");
+                    }
+
+                    foreach (var ribbonLayout in commandRecord.RibbonLayoutRecords)
+                    {
+                        McpLog.Info($"  RibbonLayoutRecord: xaml={ribbonLayout.Xaml}");
+                    }
+                }
+            }
+
+            McpLog.Info("Navisworks MCP plugin record diagnostics end.");
+        }
+        catch (Exception ex)
+        {
+            McpLog.Error("Navisworks MCP plugin record diagnostics failed.", ex);
+        }
+    }
+
+    private static bool IsRelevant(PluginRecord record)
+    {
+        return Contains(record.Id, "NavisworksMcp")
+            || Contains(record.Name, "NavisworksMcp")
+            || Contains(record.DisplayName, "Navisworks MCP")
+            || Contains(record.DeveloperId, "RRDL");
+    }
+
+    private static bool Contains(string? value, string expected)
+    {
+        return value?.IndexOf(expected, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }
 
@@ -122,7 +197,7 @@ public sealed class CopyPublicUrlPlugin : AddInPlugin
 [Plugin(
     "NavisworksMcpAddin.Status",
     "RRDL",
-    DisplayName = "Status",
+    DisplayName = "MCP Status",
     ToolTip = "Show Navisworks MCP status.")]
 [AddInPlugin(AddInLocation.AddIn)]
 public sealed class StatusPlugin : AddInPlugin
@@ -136,7 +211,7 @@ public sealed class StatusPlugin : AddInPlugin
 [Plugin(
     "NavisworksMcpAddin.Settings",
     "RRDL",
-    DisplayName = "Settings",
+    DisplayName = "MCP Settings",
     ToolTip = "Edit Navisworks MCP settings.")]
 [AddInPlugin(AddInLocation.AddIn)]
 public sealed class SettingsPlugin : AddInPlugin
@@ -150,7 +225,7 @@ public sealed class SettingsPlugin : AddInPlugin
 [Plugin(
     "NavisworksMcpAddin.OpenLogs",
     "RRDL",
-    DisplayName = "Open Logs",
+    DisplayName = "Open MCP Logs",
     ToolTip = "Open the Navisworks MCP logs folder.")]
 [AddInPlugin(AddInLocation.AddIn)]
 public sealed class OpenLogsPlugin : AddInPlugin
@@ -158,69 +233,6 @@ public sealed class OpenLogsPlugin : AddInPlugin
     public override int Execute(params string[] parameters)
     {
         return NavisworksMcpActions.OpenLogs();
-    }
-}
-
-[Plugin(
-    "NavisworksMcpAddin.Commands",
-    "RRDL",
-    DisplayName = "Navisworks MCP",
-    ToolTip = "Navisworks MCP ribbon commands.")]
-[RibbonTab("NavisworksMcpAddin.RibbonTab", DisplayName = "Navisworks MCP")]
-[RibbonLayout("NavisworksMcpRibbon.xaml")]
-[Command("StartMcp", DisplayName = "Start MCP", ToolTip = "Start the local MCP server for Navisworks.")]
-[Command("StopMcp", DisplayName = "Stop MCP", ToolTip = "Stop the local MCP server for Navisworks.")]
-[Command("StatusCommand", DisplayName = "Status", ToolTip = "Show Navisworks MCP status.")]
-[Command("CopyLocalUrlCommand", DisplayName = "Copy Local URL", ToolTip = "Copy the local Navisworks MCP URL.")]
-[Command("SettingsCommand", DisplayName = "Settings", ToolTip = "Edit Navisworks MCP settings.")]
-[Command("OpenLogsCommand", DisplayName = "Open Logs", ToolTip = "Open the Navisworks MCP logs folder.")]
-[Command("StartPublicUrlCommand", DisplayName = "Start Public URL", ToolTip = "Start the fixed ngrok public URL for Navisworks MCP.")]
-[Command("StopPublicUrlCommand", DisplayName = "Stop Public URL", ToolTip = "Stop the fixed ngrok public URL for Navisworks MCP.")]
-[Command("CopyPublicUrlCommand", DisplayName = "Copy Public URL", ToolTip = "Copy the configured public Navisworks MCP URL.")]
-public sealed class NavisworksMcpCommandHandler : CommandHandlerPlugin
-{
-    public NavisworksMcpCommandHandler()
-    {
-        McpLog.Info("Navisworks MCP command handler instance constructed.");
-    }
-
-    public override int ExecuteCommand(string commandId, params string[] parameters)
-    {
-        McpLog.Info($"Navisworks MCP command handler ExecuteCommand reached: {commandId}");
-        switch (commandId)
-        {
-            case "StartMcp":
-                return NavisworksMcpActions.Start();
-            case "StopMcp":
-                return NavisworksMcpActions.Stop();
-            case "StatusCommand":
-                return NavisworksMcpActions.Status();
-            case "CopyLocalUrlCommand":
-                return NavisworksMcpActions.CopyLocalUrl();
-            case "SettingsCommand":
-                return NavisworksMcpActions.Settings();
-            case "OpenLogsCommand":
-                return NavisworksMcpActions.OpenLogs();
-            case "StartPublicUrlCommand":
-                return NavisworksMcpActions.StartPublicUrl();
-            case "StopPublicUrlCommand":
-                return NavisworksMcpActions.StopPublicUrl();
-            case "CopyPublicUrlCommand":
-                return NavisworksMcpActions.CopyPublicUrl();
-            default:
-                NavisworksMcpDialogs.Show("Navisworks MCP", $"Unknown command: {commandId}");
-                return 1;
-        }
-    }
-
-    public override CommandState CanExecuteCommand(string commandId)
-    {
-        return new CommandState(true);
-    }
-
-    public override bool CanExecuteRibbonTab(string ribbonTabId)
-    {
-        return true;
     }
 }
 

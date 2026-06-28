@@ -8,6 +8,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if (Get-Process Roamer -ErrorAction SilentlyContinue) {
+    throw "Close Navisworks before installing the Navisworks MCP add-in. The plugin DLLs cannot be replaced while Roamer.exe is running."
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $ProjectPath = Join-Path $repoRoot "addin\NavisworksMcpAddin\NavisworksMcpAddin.csproj"
@@ -67,48 +71,79 @@ foreach ($fileName in $forbiddenAddinDependencies) {
     }
 }
 
-$bundleRoot = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
-$contentsDir = Join-Path $bundleRoot "Contents"
-if (Test-Path $bundleRoot) {
-    Remove-Item -Recurse -Force $bundleRoot
-}
-New-Item -ItemType Directory -Force -Path $contentsDir | Out-Null
+function Remove-StalePluginFiles {
+    param([string]$Dir)
 
-Copy-Item -Path (Join-Path $buildDir "*") -Destination $contentsDir -Recurse -Force
-Copy-Item -Path $probeAssemblyPath -Destination $contentsDir -Force
-Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $contentsDir -Force -ErrorAction SilentlyContinue
-$templatePath = Join-Path $projectDir "PackageContents.xml.template"
-$packageContentsPath = Join-Path $bundleRoot "PackageContents.xml"
-(Get-Content $templatePath -Raw).Replace("{NAVISWORKS_VERSION}", $NavisworksVersion) | Set-Content -Encoding UTF8 $packageContentsPath
-
-if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpAddin.Plugin.dll"))) {
-    throw "Installed bundle is missing NavisworksMcpAddin.Plugin.dll."
-}
-if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpProbe.Plugin.dll"))) {
-    throw "Installed bundle is missing NavisworksMcpProbe.Plugin.dll."
-}
-if (Get-ChildItem -Path $contentsDir -Filter "RevitMcp*" -Recurse -ErrorAction SilentlyContinue) {
-    throw "Installed bundle contains stale RevitMcp artifacts."
-}
-
-$programDataBundleRoot = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
-$programDataContentsDir = Join-Path $programDataBundleRoot "Contents"
-try {
-    if (Test-Path $programDataBundleRoot) {
-        Remove-Item -Recurse -Force $programDataBundleRoot
+    @(
+        "NavisworksMcpAddin.dll",
+        "NavisworksMcpAddin.pdb",
+        "NavisworksMcpProbe.dll",
+        "NavisworksMcpProbe.pdb",
+        "NavisworksMcpRibbon.xaml",
+        "NavisworksMcp.Plugin.dll",
+        "Microsoft.CodeAnalysis.dll",
+        "Microsoft.CodeAnalysis.CSharp.dll",
+        "System.Collections.Immutable.dll",
+        "System.Reflection.Metadata.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Json.dll"
+    ) | ForEach-Object {
+        Remove-Item (Join-Path $Dir $_) -Force -ErrorAction SilentlyContinue
     }
-    New-Item -ItemType Directory -Force -Path $programDataContentsDir | Out-Null
-    Copy-Item -Path (Join-Path $buildDir "*") -Destination $programDataContentsDir -Recurse -Force
-    Copy-Item -Path $probeAssemblyPath -Destination $programDataContentsDir -Force
-    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $programDataContentsDir -Force -ErrorAction SilentlyContinue
-    (Get-Content $templatePath -Raw).Replace("{NAVISWORKS_VERSION}", $NavisworksVersion) | Set-Content -Encoding UTF8 (Join-Path $programDataBundleRoot "PackageContents.xml")
-}
-catch {
-    Write-Warning "Could not install machine-wide ApplicationPlugins bundle. Run PowerShell as Administrator if needed. $($_.Exception.Message)"
 }
 
-$productPluginDir = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcp"
+function Remove-StaleFlatPluginFiles {
+    param([string]$Dir)
+
+    Remove-StalePluginFiles $Dir
+    @(
+        "NavisworksMcpAddin.Plugin.dll",
+        "NavisworksMcpAddin.Plugin.pdb",
+        "NavisworksMcpProbe.Plugin.dll",
+        "NavisworksMcpProbe.Plugin.pdb",
+        "Microsoft.Bcl.AsyncInterfaces.dll",
+        "System.Buffers.dll",
+        "System.Memory.dll",
+        "System.Numerics.Vectors.dll",
+        "System.Text.Encoding.CodePages.dll",
+        "System.Text.Encodings.Web.dll",
+        "System.Threading.Tasks.Extensions.dll",
+        "System.ValueTuple.dll"
+    ) | ForEach-Object {
+        Remove-Item (Join-Path $Dir $_) -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Assert-CleanPluginDir {
+    param([string]$Dir)
+
+    @(
+        "NavisworksMcpAddin.dll",
+        "NavisworksMcpProbe.dll",
+        "NavisworksMcpRibbon.xaml",
+        "NavisworksMcp.Plugin.dll",
+        "Microsoft.CodeAnalysis.dll",
+        "Microsoft.CodeAnalysis.CSharp.dll",
+        "System.Collections.Immutable.dll",
+        "System.Reflection.Metadata.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll",
+        "System.Text.Json.dll"
+    ) | ForEach-Object {
+        $staleFile = Join-Path $Dir $_
+        if (Test-Path $staleFile) {
+            throw "Installed plugin folder contains stale or forbidden file: $staleFile"
+        }
+    }
+}
+
+$bundleRoot = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+$programDataBundleRoot = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+Remove-Item -Recurse -Force $bundleRoot, $programDataBundleRoot -ErrorAction SilentlyContinue
+
+$oldProductPluginDir = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcp"
+$productPluginDir = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpAddin.Plugin"
 try {
+    Remove-Item -Recurse -Force $oldProductPluginDir -ErrorAction SilentlyContinue
     if (Test-Path $productPluginDir) {
         Remove-Item -Recurse -Force $productPluginDir
     }
@@ -116,13 +151,12 @@ try {
     Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginDir -Recurse -Force
     Copy-Item -Path $probeAssemblyPath -Destination $productPluginDir -Force
     Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $productPluginDir -Force -ErrorAction SilentlyContinue
+    Remove-StalePluginFiles $productPluginDir
+    Assert-CleanPluginDir $productPluginDir
 
     $productPluginsRoot = Join-Path $NavisworksInstallDir "Plugins"
-    Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginsRoot -Recurse -Force
-    Copy-Item -Path $probeAssemblyPath -Destination $productPluginsRoot -Force
-    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $productPluginsRoot -Force -ErrorAction SilentlyContinue
+    Remove-StaleFlatPluginFiles $productPluginsRoot
 
-    Remove-Item (Join-Path $productPluginsRoot "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcpAddin.Plugin.dll") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcpProbe.Plugin.dll") -Force -ErrorAction SilentlyContinue
@@ -131,20 +165,16 @@ catch {
     Write-Warning "Could not install to the Navisworks product Plugins folder. Run PowerShell as Administrator if needed. $($_.Exception.Message)"
 }
 
-Write-Host "Installed Navisworks MCP plugin bundle:"
-Write-Host "  $bundleRoot"
-Write-Host "Machine-wide bundle:"
-Write-Host "  $programDataBundleRoot"
 Write-Host "Product plugin folder:"
 Write-Host "  $productPluginDir"
 Write-Host "Assembly:"
-Write-Host "  $(Join-Path $contentsDir 'NavisworksMcpAddin.Plugin.dll')"
+Write-Host "  $(Join-Path $productPluginDir 'NavisworksMcpAddin.Plugin.dll')"
 Write-Host "Target framework:"
 Write-Host "  $TargetFramework"
 Write-Host ""
 Write-Host "Next:"
-Write-Host "  1. Start the MCP server."
-Write-Host "  2. Load Navisworks with:"
-Write-Host "     .\scripts\load-navisworks-addin.ps1 -NavisworksInstallDir `"$NavisworksInstallDir`" -StartNavisworks"
-Write-Host "  3. Verify with:"
+Write-Host "  1. Open or restart Navisworks $NavisworksVersion."
+Write-Host "  2. Open the native Tool add-ins tab."
+Write-Host "  3. Click Start MCP."
+Write-Host "  4. Verify with:"
 Write-Host "     .\scripts\test-navisworks-context.ps1"

@@ -26,7 +26,6 @@ Source: "{#SourceRoot}\addins\*"; DestDir: "{app}\addins"; Flags: ignoreversion 
 [Icons]
 Name: "{group}\Navisworks MCP"; Filename: "{app}\app\NavisworksMcpLauncher.exe"
 Name: "{userdesktop}\Navisworks MCP"; Filename: "{app}\app\NavisworksMcpLauncher.exe"; Tasks: desktopicon
-Name: "{userstartup}\Navisworks MCP Autoloader"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\app\watch-navisworks-addin.ps1"""; WorkingDir: "{app}\app"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
@@ -34,6 +33,10 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 [InstallDelete]
 Type: files; Name: "{app}\app\cloudflared.exe"
 Type: files; Name: "{userstartup}\Navisworks MCP Autoloader.lnk"
+Type: filesandordirs; Name: "{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+Type: filesandordirs; Name: "{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\Plugins\NavisworksMcpAddin.Plugin"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\NavisworksMcp"
@@ -101,10 +104,35 @@ Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcpPr
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcpProbe.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcpProbe.Plugin.dll"
 
-[Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\app\watch-navisworks-addin.ps1"""; WorkingDir: "{app}\app"; Flags: runhidden nowait
-
 [Code]
+function IsRoamerRunning(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Exec(
+    ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -ExecutionPolicy Bypass -Command "if (Get-Process Roamer -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode);
+  Result := ResultCode <> 0;
+end;
+
+function InitializeSetup(): Boolean;
+begin
+  if IsRoamerRunning() then
+  begin
+    MsgBox(
+      'Close Navisworks before installing Navisworks MCP. The plugin DLLs cannot be replaced while Navisworks is running.',
+      mbError,
+      MB_OK);
+    Result := False;
+  end
+  else
+    Result := True;
+end;
+
 procedure StopProcessByImageName(const ImageName: string);
 var
   ResultCode: Integer;
@@ -135,16 +163,65 @@ begin
   end;
 end;
 
+procedure DeleteStalePluginFiles(const Dir: string);
+begin
+  DeleteFile(Dir + '\NavisworksMcpAddin.dll');
+  DeleteFile(Dir + '\NavisworksMcpAddin.pdb');
+  DeleteFile(Dir + '\NavisworksMcpProbe.dll');
+  DeleteFile(Dir + '\NavisworksMcpProbe.pdb');
+  DeleteFile(Dir + '\NavisworksMcpRibbon.xaml');
+  DeleteFile(Dir + '\NavisworksMcp.Plugin.dll');
+  DeleteFile(Dir + '\Microsoft.CodeAnalysis.dll');
+  DeleteFile(Dir + '\Microsoft.CodeAnalysis.CSharp.dll');
+  DeleteFile(Dir + '\System.Collections.Immutable.dll');
+  DeleteFile(Dir + '\System.Reflection.Metadata.dll');
+  DeleteFile(Dir + '\System.Runtime.CompilerServices.Unsafe.dll');
+  DeleteFile(Dir + '\System.Text.Json.dll');
+end;
+
+procedure DeleteStaleFlatPluginFiles(const Dir: string);
+begin
+  DeleteStalePluginFiles(Dir);
+  DeleteFile(Dir + '\NavisworksMcpAddin.Plugin.dll');
+  DeleteFile(Dir + '\NavisworksMcpAddin.Plugin.pdb');
+  DeleteFile(Dir + '\NavisworksMcpProbe.Plugin.dll');
+  DeleteFile(Dir + '\NavisworksMcpProbe.Plugin.pdb');
+  DeleteFile(Dir + '\Microsoft.Bcl.AsyncInterfaces.dll');
+  DeleteFile(Dir + '\System.Buffers.dll');
+  DeleteFile(Dir + '\System.Memory.dll');
+  DeleteFile(Dir + '\System.Numerics.Vectors.dll');
+  DeleteFile(Dir + '\System.Text.Encoding.CodePages.dll');
+  DeleteFile(Dir + '\System.Text.Encodings.Web.dll');
+  DeleteFile(Dir + '\System.Threading.Tasks.Extensions.dll');
+  DeleteFile(Dir + '\System.ValueTuple.dll');
+end;
+
+procedure FailIfExists(const Path: string);
+begin
+  if FileExists(Path) then
+    RaiseException('Navisworks MCP installer left a stale or forbidden plugin file: ' + Path);
+end;
+
+procedure ValidateCleanPluginDir(const Dir: string);
+begin
+  FailIfExists(Dir + '\NavisworksMcpAddin.dll');
+  FailIfExists(Dir + '\NavisworksMcpProbe.dll');
+  FailIfExists(Dir + '\NavisworksMcpRibbon.xaml');
+  FailIfExists(Dir + '\NavisworksMcp.Plugin.dll');
+  FailIfExists(Dir + '\Microsoft.CodeAnalysis.dll');
+  FailIfExists(Dir + '\Microsoft.CodeAnalysis.CSharp.dll');
+  FailIfExists(Dir + '\System.Collections.Immutable.dll');
+  FailIfExists(Dir + '\System.Reflection.Metadata.dll');
+  FailIfExists(Dir + '\System.Runtime.CompilerServices.Unsafe.dll');
+  FailIfExists(Dir + '\System.Text.Json.dll');
+end;
+
 procedure InstallBundleForVersion(const Version: string);
 var
   ApiPath: string;
   InstallDir: string;
   SourceDir: string;
   SourceContentsDir: string;
-  BundleDir: string;
-  ContentsDir: string;
-  ProgramDataBundleDir: string;
-  ProgramDataContentsDir: string;
   ProductPluginDir: string;
   ProductPluginFlatDir: string;
 begin
@@ -161,33 +238,19 @@ begin
 
   if FileExists(ApiPath) and DirExists(SourceDir) then
   begin
-    BundleDir := ExpandConstant('{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle');
-    ContentsDir := BundleDir + '\Contents';
-    DelTree(BundleDir, True, True, True);
-    ForceDirectories(ContentsDir);
-    CopyDirectoryContents(SourceDir + '\Contents', ContentsDir);
-    CopyFile(SourceDir + '\PackageContents.xml', BundleDir + '\PackageContents.xml', False);
+    DelTree(ExpandConstant('{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle'), True, True, True);
+    DelTree(ExpandConstant('{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle'), True, True, True);
+    DelTree(InstallDir + '\Plugins\NavisworksMcp', True, True, True);
 
-    ProgramDataBundleDir := ExpandConstant('{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle');
-    ProgramDataContentsDir := ProgramDataBundleDir + '\Contents';
-    DelTree(ProgramDataBundleDir, True, True, True);
-    ForceDirectories(ProgramDataContentsDir);
-    CopyDirectoryContents(SourceDir + '\Contents', ProgramDataContentsDir);
-    CopyFile(SourceDir + '\PackageContents.xml', ProgramDataBundleDir + '\PackageContents.xml', False);
-
-    ProductPluginDir := InstallDir + '\Plugins\NavisworksMcp';
+    ProductPluginDir := InstallDir + '\Plugins\NavisworksMcpAddin.Plugin';
     DelTree(ProductPluginDir, True, True, True);
+    ForceDirectories(ProductPluginDir);
+    CopyDirectoryContents(SourceContentsDir, ProductPluginDir);
+    DeleteStalePluginFiles(ProductPluginDir);
+    ValidateCleanPluginDir(ProductPluginDir);
 
     ProductPluginFlatDir := InstallDir + '\Plugins';
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.dll');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.pdb');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.Plugin.dll');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.Plugin.pdb');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.dll');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.pdb');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.dll');
-    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.pdb');
+    DeleteStaleFlatPluginFiles(ProductPluginFlatDir);
 
     DeleteFile(InstallDir + '\NavisworksMcp.Plugin.dll');
     DeleteFile(InstallDir + '\NavisworksMcpAddin.Plugin.dll');

@@ -1,0 +1,3 @@
+[submodule "references/BulkProps-Navisworks-Plugin"]
+	path = references/BulkProps-Navisworks-Plugin
+	url = git@github.com:shaun-wilson/BulkProps-Navisworks-Plugin.git

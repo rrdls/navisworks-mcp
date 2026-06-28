@@ -1,14 +1,27 @@
 param(
-    [string]$BundleName = "NavisworksMcp.bundle"
+    [string]$NavisworksVersion = "2024",
+    [string]$NavisworksInstallDir = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-$bundlePath = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\$BundleName"
-if (Test-Path $bundlePath) {
-    Remove-Item -Recurse -Force $bundlePath
-    Write-Host "Removed $bundlePath"
+if ([string]::IsNullOrWhiteSpace($NavisworksInstallDir)) {
+    $NavisworksInstallDir = "C:\Program Files\Autodesk\Navisworks Manage $NavisworksVersion"
 }
-else {
-    Write-Host "Plugin bundle not found: $bundlePath"
+
+$paths = @(
+    (Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpAddin.Plugin"),
+    (Join-Path $NavisworksInstallDir "Plugins\NavisworksMcp"),
+    (Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle"),
+    (Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\NavisworksMcp.bundle")
+)
+
+foreach ($path in $paths) {
+    if (Test-Path $path) {
+        Remove-Item -Recurse -Force $path
+        Write-Host "Removed $path"
+    }
+    else {
+        Write-Host "Not found: $path"
+    }
 }

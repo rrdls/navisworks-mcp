@@ -61,7 +61,7 @@
         <div class="product-panel" aria-label="Fluxo visual do Navisworks MCP">
           <div class="window-bar">
             <span></span>
-            <strong>Navisworks MCP Commands</strong>
+            <strong>Navisworks Tool add-ins</strong>
           </div>
           <div class="launcher-grid">
             <div class="launcher-status">
@@ -73,7 +73,7 @@
               Navisworks: addin loaded
             </div>
             <div class="launcher-button">Start MCP</div>
-            <div class="launcher-button">Copy Local URL</div>
+            <div class="launcher-button">MCP Status</div>
           </div>
           <pre class="terminal-output">get_navisworks_context
 {
@@ -89,8 +89,8 @@
           <p class="eyebrow">Fluxo recomendado</p>
           <h2>Controle o MCP de dentro do Navisworks.</h2>
           <p>
-            O fluxo principal agora fica nos comandos do plugin Navisworks MCP. O launcher permanece como ferramenta
-            auxiliar de diagnóstico.
+            O fluxo principal fica nos comandos nativos da aba <code>Tool add-ins</code>. O Navisworks não exibe uma
+            aba customizada do MCP; os botões seguem o padrão de add-ins do próprio Navisworks.
           </p>
         </div>
         <div class="steps">
@@ -101,13 +101,13 @@
           </article>
           <article>
             <span>2</span>
-            <h3>Inicie o MCP</h3>
-            <p>Abra o Navisworks e execute o comando <code>Start MCP</code> do plugin.</p>
+            <h3>Abra o Navisworks</h3>
+            <p>Reinicie o Navisworks depois da instalação e abra a aba <code>Tool add-ins</code>.</p>
           </article>
           <article>
             <span>3</span>
-            <h3>Abra o Navisworks</h3>
-            <p>Use <code>Copy Local URL</code> para copiar a URL com token gerado.</p>
+            <h3>Inicie o MCP</h3>
+            <p>Clique em <code>Start MCP</code> e use <code>Copy Local URL</code> para copiar a URL com token.</p>
           </article>
           <article>
             <span>4</span>
@@ -146,9 +146,11 @@
           </div>
           <ul class="limits">
             <li>Validado no Navisworks Manage 2024.</li>
-            <li>O launcher continua disponível apenas como ferramenta auxiliar.</li>
+            <li>Os botões aparecem em <code>Tool add-ins</code>, não em uma aba customizada.</li>
+            <li>O launcher externo continua disponível apenas como ferramenta auxiliar de diagnóstico.</li>
             <li>Não cria paredes, famílias, níveis ou elementos nativos de autoria como no Revit.</li>
             <li>Snippets devem ser pequenos, focados e preferencialmente de leitura.</li>
+            <li>A URL pública usa ngrok com domínio fixo e secret no caminho <code>/&lt;mcp-secret&gt;/mcp</code>.</li>
           </ul>
         </div>
       </section>

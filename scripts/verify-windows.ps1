@@ -27,4 +27,4 @@ Write-Host "== MCP client config =="
 & (Join-Path $PSScriptRoot "write-mcp-config.ps1")
 
 Write-Host ""
-Write-Host "Verification completed. Start the MCP server, open or restart Navisworks $NavisworksVersion, and test run_navisworks_code with: return doc.Title;"
+Write-Host "Verification completed. Open or restart Navisworks $NavisworksVersion, use Tool add-ins > Start MCP, then test run_navisworks_code with: return doc.Title;"

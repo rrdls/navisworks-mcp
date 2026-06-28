@@ -32,13 +32,7 @@ if ([string]::IsNullOrWhiteSpace($NavisworksInstallDir)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($PluginPath)) {
-    $userBundlePluginPath = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\NavisworksMcp.bundle\Contents\NavisworksMcpAddin.Plugin.dll"
-    if (Test-Path $userBundlePluginPath) {
-        $PluginPath = $userBundlePluginPath
-    }
-    else {
-        $PluginPath = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpAddin.Plugin.dll"
-    }
+    $PluginPath = Join-Path $NavisworksInstallDir "Plugins\NavisworksMcpAddin.Plugin\NavisworksMcpAddin.Plugin.dll"
 }
 
 $automationDll = Join-Path $NavisworksInstallDir "Autodesk.Navisworks.Automation.dll"
