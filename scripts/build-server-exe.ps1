@@ -27,6 +27,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue `
     (Join-Path $distDir "NavisworksMcpLauncher.exe")
 
 Copy-Item -Path (Join-Path $PSScriptRoot "load-navisworks-addin.ps1") -Destination $distDir -Force
+Copy-Item -Path (Join-Path $PSScriptRoot "watch-navisworks-addin.ps1") -Destination $distDir -Force
 
 & $pythonExe -m PyInstaller `
     --noconfirm `

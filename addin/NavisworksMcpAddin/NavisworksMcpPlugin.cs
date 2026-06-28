@@ -167,30 +167,7 @@ public sealed class OpenLogsPlugin : AddInPlugin
     DisplayName = "Navisworks MCP",
     ToolTip = "Navisworks MCP ribbon commands.")]
 [RibbonTab("NavisworksMcpAddin.RibbonTab", DisplayName = "Navisworks MCP")]
-[RibbonLayout(@"
-<RibbonControl xmlns=""clr-namespace:Autodesk.Windows;assembly=AdWindows"">
-  <RibbonTab Id=""NavisworksMcpAddin.RibbonTab"" Title=""Navisworks MCP"">
-    <RibbonPanel Source=""NavisworksMcpAddin.MainPanel"">
-      <RibbonPanelSource Id=""NavisworksMcpAddin.MainPanel"" Title=""MCP"">
-        <RibbonRowPanel>
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StartMcp"" Size=""Large"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StopMcp"" Size=""Large"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StatusCommand"" Size=""Large"" ShowText=""True"" />
-        </RibbonRowPanel>
-        <RibbonRowPanel>
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.CopyLocalUrlCommand"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.SettingsCommand"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.OpenLogsCommand"" ShowText=""True"" />
-        </RibbonRowPanel>
-        <RibbonRowPanel>
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StartPublicUrlCommand"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StopPublicUrlCommand"" ShowText=""True"" />
-          <RibbonCommandButton CommandId=""NavisworksMcpAddin.CopyPublicUrlCommand"" ShowText=""True"" />
-        </RibbonRowPanel>
-      </RibbonPanelSource>
-    </RibbonPanel>
-  </RibbonTab>
-</RibbonControl>")]
+[RibbonLayout("NavisworksMcpRibbon.xaml")]
 [Command("StartMcp", DisplayName = "Start MCP", ToolTip = "Start the local MCP server for Navisworks.")]
 [Command("StopMcp", DisplayName = "Stop MCP", ToolTip = "Stop the local MCP server for Navisworks.")]
 [Command("StatusCommand", DisplayName = "Status", ToolTip = "Show Navisworks MCP status.")]

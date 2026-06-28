@@ -26,15 +26,18 @@ Source: "{#SourceRoot}\addins\*"; DestDir: "{app}\addins"; Flags: ignoreversion 
 [Icons]
 Name: "{group}\Navisworks MCP"; Filename: "{app}\app\NavisworksMcpLauncher.exe"
 Name: "{userdesktop}\Navisworks MCP"; Filename: "{app}\app\NavisworksMcpLauncher.exe"; Tasks: desktopicon
+Name: "{userstartup}\Navisworks MCP Autoloader"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\app\watch-navisworks-addin.ps1"""; WorkingDir: "{app}\app"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
 
 [InstallDelete]
 Type: files; Name: "{app}\app\cloudflared.exe"
+Type: files; Name: "{userstartup}\Navisworks MCP Autoloader.lnk"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\NavisworksMcp"
+Type: files; Name: "{userstartup}\Navisworks MCP Autoloader.lnk"
 Type: filesandordirs; Name: "{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
 Type: filesandordirs; Name: "{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
 Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\Plugins\NavisworksMcp"
@@ -97,6 +100,9 @@ Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\NavisworksMcpPr
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcpProbe.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcpProbe.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcpProbe.Plugin.dll"
+
+[Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\app\watch-navisworks-addin.ps1"""; WorkingDir: "{app}\app"; Flags: runhidden nowait
 
 [Code]
 procedure StopProcessByImageName(const ImageName: string);
@@ -171,12 +177,17 @@ begin
 
     ProductPluginDir := InstallDir + '\Plugins\NavisworksMcp';
     DelTree(ProductPluginDir, True, True, True);
-    ForceDirectories(ProductPluginDir);
-    CopyDirectoryContents(SourceContentsDir, ProductPluginDir);
 
     ProductPluginFlatDir := InstallDir + '\Plugins';
-    CopyDirectoryContents(SourceContentsDir, ProductPluginFlatDir);
     DeleteFile(ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.dll');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.pdb');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.Plugin.dll');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpAddin.Plugin.pdb');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.dll');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.pdb');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.dll');
+    DeleteFile(ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.pdb');
 
     DeleteFile(InstallDir + '\NavisworksMcp.Plugin.dll');
     DeleteFile(InstallDir + '\NavisworksMcpAddin.Plugin.dll');
