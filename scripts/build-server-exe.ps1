@@ -24,6 +24,7 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
     --noconfirm `
     --clean `
     --onefile `
+    --collect-data jsonschema_specifications `
     --name NavisworksMcpServer `
     --distpath $distDir `
     --workpath $workDir `
@@ -35,6 +36,7 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
     --clean `
     --onefile `
     --windowed `
+    --collect-data jsonschema_specifications `
     --name NavisworksMcpLauncher `
     --distpath $distDir `
     --workpath $workDir `
