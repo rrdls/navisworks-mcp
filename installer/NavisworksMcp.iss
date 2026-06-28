@@ -12,7 +12,7 @@ DefaultDirName={localappdata}\NavisworksMcp
 DefaultGroupName=Navisworks MCP
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist\installer
 OutputBaseFilename=NavisworksMcpSetup
 Compression=lzma
@@ -30,51 +30,58 @@ Name: "{userdesktop}\Navisworks MCP"; Filename: "{app}\app\NavisworksMcpLauncher
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
 
-[Run]
-Filename: "{app}\app\NavisworksMcpLauncher.exe"; Description: "Launch Navisworks MCP"; Flags: nowait postinstall skipifsilent
+[InstallDelete]
+Type: files; Name: "{app}\app\cloudflared.exe"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\NavisworksMcp"
 Type: filesandordirs; Name: "{userappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
 Type: filesandordirs; Name: "{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2021\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2022\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2023\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2024\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2025\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Manage 2026\Plugins\NavisworksMcp"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2021\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2022\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2023\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2024\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2025\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2026\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2021\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2022\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2023\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2024\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2025\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Manage 2026\NavisworksMcpProbe.Plugin.dll"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2021\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2022\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2023\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2024\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2025\Plugins\NavisworksMcp"
-Type: filesandordirs; Name: "{pf}\Autodesk\Navisworks Simulate 2026\Plugins\NavisworksMcp"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2021\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2022\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2023\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2024\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2025\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2026\NavisworksMcp.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2021\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2022\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2023\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2024\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2025\NavisworksMcpProbe.Plugin.dll"
-Type: files; Name: "{pf}\Autodesk\Navisworks Simulate 2026\NavisworksMcpProbe.Plugin.dll"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2022\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2025\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Manage 2026\Plugins\NavisworksMcp"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2022\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2025\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2026\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2022\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2025\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2026\NavisworksMcpProbe.Plugin.dll"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2021\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2022\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\Plugins\NavisworksMcp"
+Type: filesandordirs; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\Plugins\NavisworksMcp"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2021\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2022\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2021\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2022\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcpProbe.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcpProbe.Plugin.dll"
 
 [Code]
+procedure StopProcessByImageName(const ImageName: string);
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /IM "' + ImageName + '" /T /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
 procedure CopyDirectoryContents(const SourceDir, DestDir: string);
 var
   FindRec: TFindRec;
@@ -89,7 +96,7 @@ begin
           if FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
             CopyDirectoryContents(SourceDir + '\' + FindRec.Name, DestDir + '\' + FindRec.Name)
           else
-            FileCopy(SourceDir + '\' + FindRec.Name, DestDir + '\' + FindRec.Name, False);
+            CopyFile(SourceDir + '\' + FindRec.Name, DestDir + '\' + FindRec.Name, False);
         end;
       until not FindNext(FindRec);
     finally
@@ -111,11 +118,11 @@ var
   ProductPluginDir: string;
   ProductPluginFlatDir: string;
 begin
-  InstallDir := ExpandConstant('{pf}\Autodesk\Navisworks Manage ' + Version);
+  InstallDir := ExpandConstant('{commonpf}\Autodesk\Navisworks Manage ' + Version);
   ApiPath := InstallDir + '\Autodesk.Navisworks.Api.dll';
   if not FileExists(ApiPath) then
   begin
-    InstallDir := ExpandConstant('{pf}\Autodesk\Navisworks Simulate ' + Version);
+    InstallDir := ExpandConstant('{commonpf}\Autodesk\Navisworks Simulate ' + Version);
     ApiPath := InstallDir + '\Autodesk.Navisworks.Api.dll';
   end;
 
@@ -129,14 +136,14 @@ begin
     DelTree(BundleDir, True, True, True);
     ForceDirectories(ContentsDir);
     CopyDirectoryContents(SourceDir + '\Contents', ContentsDir);
-    FileCopy(SourceDir + '\PackageContents.xml', BundleDir + '\PackageContents.xml', False);
+    CopyFile(SourceDir + '\PackageContents.xml', BundleDir + '\PackageContents.xml', False);
 
     ProgramDataBundleDir := ExpandConstant('{commonappdata}\Autodesk\ApplicationPlugins\NavisworksMcp.bundle');
     ProgramDataContentsDir := ProgramDataBundleDir + '\Contents';
     DelTree(ProgramDataBundleDir, True, True, True);
     ForceDirectories(ProgramDataContentsDir);
     CopyDirectoryContents(SourceDir + '\Contents', ProgramDataContentsDir);
-    FileCopy(SourceDir + '\PackageContents.xml', ProgramDataBundleDir + '\PackageContents.xml', False);
+    CopyFile(SourceDir + '\PackageContents.xml', ProgramDataBundleDir + '\PackageContents.xml', False);
 
     ProductPluginDir := InstallDir + '\Plugins\NavisworksMcp';
     DelTree(ProductPluginDir, True, True, True);
@@ -146,19 +153,25 @@ begin
     ProductPluginFlatDir := InstallDir + '\Plugins';
     CopyDirectoryContents(SourceContentsDir, ProductPluginFlatDir);
     if FileExists(ProductPluginFlatDir + '\NavisworksMcpAddin.dll') then
-      FileCopy(ProductPluginFlatDir + '\NavisworksMcpAddin.dll', ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll', False);
+      CopyFile(ProductPluginFlatDir + '\NavisworksMcpAddin.dll', ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll', False);
     if FileExists(ProductPluginFlatDir + '\NavisworksMcpProbe.dll') then
-      FileCopy(ProductPluginFlatDir + '\NavisworksMcpProbe.dll', ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.dll', False);
+      CopyFile(ProductPluginFlatDir + '\NavisworksMcpProbe.dll', ProductPluginFlatDir + '\NavisworksMcpProbe.Plugin.dll', False);
 
     if FileExists(SourceContentsDir + '\NavisworksMcpAddin.dll') then
-      FileCopy(SourceContentsDir + '\NavisworksMcpAddin.dll', InstallDir + '\NavisworksMcp.Plugin.dll', False);
+      CopyFile(SourceContentsDir + '\NavisworksMcpAddin.dll', InstallDir + '\NavisworksMcp.Plugin.dll', False);
     if FileExists(SourceContentsDir + '\NavisworksMcpProbe.dll') then
-      FileCopy(SourceContentsDir + '\NavisworksMcpProbe.dll', InstallDir + '\NavisworksMcpProbe.Plugin.dll', False);
+      CopyFile(SourceContentsDir + '\NavisworksMcpProbe.dll', InstallDir + '\NavisworksMcpProbe.Plugin.dll', False);
   end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssInstall then
+  begin
+    StopProcessByImageName('NavisworksMcpServer.exe');
+    StopProcessByImageName('ngrok.exe');
+  end;
+
   if CurStep = ssPostInstall then
   begin
     InstallBundleForVersion('2021');

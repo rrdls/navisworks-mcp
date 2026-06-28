@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import queue
 import re
@@ -9,12 +10,12 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+import uuid
 from pathlib import Path
 from tkinter import messagebox, ttk
 
 
 HTTP_PORT = "8000"
-HTTP_PATH = "/mcp"
 NAVISWORKS_WS_PORT = "8765"
 DEFAULT_NAVISWORKS_2024 = r"C:\Program Files\Autodesk\Navisworks Manage 2024"
 
@@ -72,7 +73,6 @@ class Launcher(tk.Tk):
         self.tunnel_status = tk.StringVar(value="Tunnel: stopped")
         self.navisworks_status = tk.StringVar(value="Navisworks: not loaded")
         self.public_url = tk.StringVar(value="")
-        self.tunnel_kind = tk.StringVar(value="cloudflared")
         self.tunnel_exit_reported = False
 
         self._build_ui()
@@ -83,7 +83,7 @@ class Launcher(tk.Tk):
         root.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(root, text="Navisworks MCP", font=("Segoe UI", 18, "bold")).pack(anchor=tk.W)
-        ttk.Label(root, text="Start the local MCP server, create a tunnel, then copy the /mcp URL into your MCP client.").pack(
+        ttk.Label(root, text="Start the local MCP server, create a public URL, then copy the MCP URL into your client.").pack(
             anchor=tk.W, pady=(2, 14)
         )
 
@@ -103,10 +103,8 @@ class Launcher(tk.Tk):
         ttk.Button(controls, text="Load Addin", command=self.load_navisworks_addin).pack(side=tk.LEFT, padx=(8, 0))
 
         ttk.Separator(controls, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=14)
-        ttk.Radiobutton(controls, text="Cloudflare", variable=self.tunnel_kind, value="cloudflared").pack(side=tk.LEFT)
-        ttk.Radiobutton(controls, text="ngrok", variable=self.tunnel_kind, value="ngrok").pack(side=tk.LEFT, padx=(8, 0))
-        ttk.Button(controls, text="Start Tunnel", command=self.start_tunnel).pack(side=tk.LEFT, padx=(12, 0))
-        ttk.Button(controls, text="Stop Tunnel", command=self.stop_tunnel).pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Button(controls, text="Start Public URL", command=self.start_tunnel).pack(side=tk.LEFT, padx=(12, 0))
+        ttk.Button(controls, text="Stop Public URL", command=self.stop_tunnel).pack(side=tk.LEFT, padx=(8, 0))
 
         url_row = ttk.Frame(root)
         url_row.pack(fill=tk.X, pady=(4, 10))
@@ -139,16 +137,18 @@ class Launcher(tk.Tk):
             self._handle_line("Port 8765 is already in use. Close the old Navisworks MCP server process, then try again.")
             return
 
+        settings = load_settings()
         env = os.environ.copy()
         env.update(
             {
                 "MCP_TRANSPORT": "streamable-http",
                 "MCP_HTTP_HOST": "127.0.0.1",
                 "MCP_HTTP_PORT": HTTP_PORT,
-                "MCP_HTTP_PATH": HTTP_PATH,
+                "MCP_HTTP_PATH": mcp_path(settings),
                 "MCP_DISABLE_DNS_REBINDING_PROTECTION": "true",
                 "NAVISWORKS_MCP_HOST": "127.0.0.1",
                 "NAVISWORKS_MCP_PORT": NAVISWORKS_WS_PORT,
+                "NAVISWORKS_MCP_TOKEN": settings["McpAuthToken"],
             }
         )
 
@@ -161,6 +161,7 @@ class Launcher(tk.Tk):
         self.server = ProcessPump(command, env, self.output)
         self.server.start()
         self.server_status.set("MCP server: starting")
+        self.public_url.set(local_mcp_url(settings))
 
     def open_navisworks(self) -> None:
         self._load_navisworks_addin(start_navisworks=True)
@@ -252,11 +253,23 @@ class Launcher(tk.Tk):
             self.tunnel_status.set("Tunnel: waiting for MCP")
             return
 
-        tool = self.tunnel_kind.get()
-        if tool == "cloudflared":
-            command = [self._tool_path("cloudflared.exe", "cloudflared"), "tunnel", "--url", f"http://127.0.0.1:{HTTP_PORT}"]
-        else:
-            command = [self._tool_path("ngrok.exe", "ngrok"), "http", HTTP_PORT]
+        settings = load_settings()
+        domain = normalize_domain(settings.get("NgrokDomain", ""))
+        authtoken = settings.get("NgrokAuthToken", "").strip()
+        if not authtoken or not domain:
+            self._handle_line("Configure ngrok authtoken and fixed domain in Navisworks MCP Settings before starting the public URL.")
+            self.tunnel_status.set("Tunnel: missing settings")
+            return
+
+        write_ngrok_config(authtoken)
+        command = [
+            self._tool_path("ngrok.exe", "ngrok"),
+            "http",
+            HTTP_PORT,
+            f"--url=https://{domain}",
+            "--config",
+            str(ngrok_config_path()),
+        ]
 
         self.tunnel = ProcessPump(command, os.environ.copy(), self.output)
         self.tunnel_exit_reported = False
@@ -264,11 +277,12 @@ class Launcher(tk.Tk):
         try:
             self._handle_line("Starting tunnel command: " + " ".join(command))
             self.tunnel.start()
-            self.tunnel_status.set(f"Tunnel: starting ({tool})")
+            self.tunnel_status.set("Tunnel: starting (ngrok)")
+            self.public_url.set(public_mcp_url(settings) or "")
         except FileNotFoundError:
             self.tunnel_status.set("Tunnel: tool not found")
-            messagebox.showerror("Tunnel tool not found", f"Could not find {tool}. Install it or place it next to this app.")
-            self._handle_line(f"Could not find tunnel command: {tool}")
+            messagebox.showerror("Tunnel tool not found", "Could not find ngrok. Install it or place it next to this app.")
+            self._handle_line("Could not find tunnel command: ngrok")
         except Exception as ex:
             self.tunnel_status.set("Tunnel: failed")
             messagebox.showerror("Tunnel failed", str(ex))
@@ -313,7 +327,7 @@ class Launcher(tk.Tk):
 
         url = self._extract_public_url(line)
         if url:
-            self.public_url.set(url.rstrip("/") + HTTP_PATH)
+            self.public_url.set(url.rstrip("/") + mcp_path(load_settings()))
             self.tunnel_status.set("Tunnel: running")
 
     def _refresh_process_status(self) -> None:
@@ -333,7 +347,7 @@ class Launcher(tk.Tk):
             self._handle_line(f"Tunnel process exited before publishing a URL. Exit code: {exit_code}.")
 
     def _extract_public_url(self, line: str) -> str | None:
-        match = re.search(r"https://[a-zA-Z0-9.-]+(?:trycloudflare\.com|ngrok-free\.app)", line)
+        match = re.search(r"https://[a-zA-Z0-9.-]+(?:ngrok-free\.app|ngrok-free\.dev|ngrok\.app|ngrok\.dev)", line)
         if match:
             return match.group(0)
         return None
@@ -375,6 +389,77 @@ def find_navisworks_install_dir() -> Path | None:
 
     fallback = Path(DEFAULT_NAVISWORKS_2024)
     return fallback if fallback.exists() else None
+
+
+def app_data_dir() -> Path:
+    return Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "NavisworksMcp"
+
+
+def settings_path() -> Path:
+    return app_data_dir() / "settings.json"
+
+
+def ngrok_config_path() -> Path:
+    return app_data_dir() / "ngrok.yml"
+
+
+def load_settings() -> dict[str, str]:
+    path = settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                token = str(data.get("McpAuthToken") or "").strip()
+                if not token:
+                    token = uuid.uuid4().hex
+                    data["McpAuthToken"] = token
+                    path.write_text(json.dumps(data), encoding="utf-8")
+                return {
+                    "McpAuthToken": token,
+                    "NgrokAuthToken": str(data.get("NgrokAuthToken") or ""),
+                    "NgrokDomain": str(data.get("NgrokDomain") or ""),
+                }
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    data = {
+        "McpAuthToken": uuid.uuid4().hex,
+        "NgrokAuthToken": "",
+        "NgrokDomain": "",
+    }
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return data
+
+
+def mcp_path(settings: dict[str, str]) -> str:
+    return "/" + settings["McpAuthToken"].strip("/") + "/mcp"
+
+
+def local_mcp_url(settings: dict[str, str]) -> str:
+    return f"http://127.0.0.1:{HTTP_PORT}{mcp_path(settings)}"
+
+
+def public_mcp_url(settings: dict[str, str]) -> str | None:
+    domain = normalize_domain(settings.get("NgrokDomain", ""))
+    if not domain:
+        return None
+    return f"https://{domain}{mcp_path(settings)}"
+
+
+def normalize_domain(value: str) -> str:
+    domain = value.strip()
+    for prefix in ("https://", "http://"):
+        if domain.lower().startswith(prefix):
+            domain = domain[len(prefix):]
+            break
+    return domain.strip().rstrip("/")
+
+
+def write_ngrok_config(authtoken: str) -> None:
+    path = ngrok_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("version: 3\nagent:\n  authtoken: " + authtoken.strip() + "\n", encoding="utf-8")
 
 
 def stop_processes_listening_on_ports(ports: list[int], allowed_names: set[str]) -> set[int]:

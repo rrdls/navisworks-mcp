@@ -1,6 +1,7 @@
 param(
     [string]$PackageRoot = "",
-    [switch]$RequireAddin
+    [switch]$RequireAddin,
+    [switch]$RequireNgrok
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,10 @@ $requiredFiles = @(
     "app\NavisworksMcpServer.exe",
     "app\NavisworksMcpLauncher.exe"
 )
+
+if ($RequireNgrok) {
+    $requiredFiles += "app\ngrok.exe"
+}
 
 foreach ($relativePath in $requiredFiles) {
     $path = Join-Path $PackageRoot $relativePath

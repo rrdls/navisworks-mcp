@@ -1,5 +1,5 @@
 param(
-    [string]$McpUrl = "http://127.0.0.1:8000/mcp",
+    [string]$McpUrl = "",
     [switch]$InstallDependencies
 )
 
@@ -22,6 +22,20 @@ if ($InstallDependencies) {
 
 Get-ChildItem -Path $venvDir -Recurse -Force -Filter "*:Zone.Identifier" -ErrorAction SilentlyContinue |
     Remove-Item -Force -ErrorAction SilentlyContinue
+
+if ([string]::IsNullOrWhiteSpace($McpUrl)) {
+    $settingsPath = Join-Path $env:LOCALAPPDATA "NavisworksMcp\settings.json"
+    if (Test-Path $settingsPath) {
+        $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
+        if ($settings.McpAuthToken) {
+            $McpUrl = "http://127.0.0.1:8000/$($settings.McpAuthToken)/mcp"
+        }
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($McpUrl)) {
+    $McpUrl = "http://127.0.0.1:8000/mcp"
+}
 
 $clientScript = @'
 import asyncio

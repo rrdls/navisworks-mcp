@@ -17,13 +17,13 @@ The project is local-first. There is no hosted backend required.
 
 ## Current Status
 
-This repository was migrated from the Revit MCP project. The Python MCP server, WebSocket bridge, launcher, tunnel flow, and packaging structure have been adapted to Navisworks.
+This repository was migrated from the Revit MCP project. The Python MCP server, WebSocket bridge, in-product controls, fixed ngrok public URL flow, and packaging structure have been adapted to Navisworks.
 
 The first supported workflow is:
 
-1. Start the local MCP server.
-2. Open Navisworks.
-3. The Navisworks MCP plugin connects automatically after Navisworks loads.
+1. Open Navisworks.
+2. Run the `Start MCP` command from the Navisworks MCP plugin commands.
+3. Copy the local MCP URL from `Copy Local URL`.
 4. Execute small C# snippets against the active Navisworks document.
 
 Navisworks is primarily a coordination/review environment. Do not expect Revit-style BIM authoring operations such as creating native walls, doors, families, or levels.
@@ -98,7 +98,7 @@ C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcp.Plugin.dll
 C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcpProbe.Plugin.dll
 ```
 
-Start MCP over HTTP:
+Start MCP over HTTP for development:
 
 ```powershell
 .\scripts\run-http-server.ps1
@@ -116,17 +116,33 @@ The Navisworks plugin connects locally to:
 ws://127.0.0.1:8765
 ```
 
-Navisworks does not auto-register external .NET plugin assemblies from the MCP bundle on every install. Use the launcher
-or loader script to open Navisworks and register the addin explicitly:
+The packaged plugin exposes Navisworks MCP commands inside Navisworks:
+
+```text
+Start MCP
+Stop MCP
+Start Public URL
+Stop Public URL
+Copy Local URL
+Copy Public URL
+Status
+Settings
+Open Logs
+```
+
+The local URL used by the packaged app includes a generated auth token:
+
+```text
+http://127.0.0.1:8000/<token>/mcp
+```
+
+Navisworks plugin loading can still be diagnosed with the loader script:
 
 ```powershell
 .\scripts\load-navisworks-addin.ps1 -NavisworksInstallDir "C:\Program Files\Autodesk\Navisworks Manage 2026" -StartNavisworks
 ```
 
-The loader prefers the user bundle under `%APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle`, so it does not
-require administrator permissions for normal testing.
-
-In the packaged app, click `Start MCP`, then `Open Navisworks`.
+The loader prefers the user bundle under `%APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle`, so it does not require administrator permissions for normal testing.
 
 To test the Python/WebSocket path without Navisworks:
 
@@ -192,9 +208,9 @@ Logs are written to:
 
 If Navisworks does not connect:
 
-- Start the MCP server first.
-- Open Navisworks through the `Open Navisworks` button in the launcher, or run `scripts\load-navisworks-addin.ps1`.
-- Use the `Navisworks MCP` plugin command only as a manual reconnect fallback.
+- Open Navisworks and run `Start MCP` from the Navisworks MCP plugin commands.
+- Use `Status` to confirm the local URL and process state.
+- Use `Open Logs` to inspect `%LOCALAPPDATA%\NavisworksMcp`.
 - Confirm port `8765` is free.
 - Check `probe.log` first. If it exists, Navisworks loaded the minimal MCP probe and discovery is working.
 - Check `addin.log` next. If `probe.log` exists but `addin.log` does not, the full MCP addin is failing before startup.
@@ -212,5 +228,6 @@ If snippets fail to compile:
 This project executes generated C# inside Navisworks. Treat it like a local automation console.
 
 - Only connect trusted MCP clients.
+- Keep the generated MCP auth token private; it is part of the local/public MCP URL.
 - Review destructive operations before running them.
 - Prefer read-only inspection unless a document change is explicitly requested.
