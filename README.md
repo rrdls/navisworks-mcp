@@ -23,7 +23,7 @@ The first supported workflow is:
 
 1. Start the local MCP server.
 2. Open Navisworks.
-3. Run the `Navisworks MCP` plugin command inside Navisworks.
+3. The Navisworks MCP plugin connects automatically after Navisworks loads.
 4. Execute small C# snippets against the active Navisworks document.
 
 Navisworks is primarily a coordination/review environment. Do not expect Revit-style BIM authoring operations such as creating native walls, doors, families, or levels.
@@ -179,7 +179,7 @@ If Navisworks does not connect:
 
 - Start the MCP server first.
 - Open or restart Navisworks after installing the bundle.
-- Run the `Navisworks MCP` plugin command.
+- Use the `Navisworks MCP` plugin command only as a manual reconnect fallback.
 - Confirm port `8765` is free.
 - Check the log file above.
 
