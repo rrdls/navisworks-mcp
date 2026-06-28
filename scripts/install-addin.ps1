@@ -122,11 +122,10 @@ try {
     Copy-Item -Path $probeAssemblyPath -Destination $productPluginsRoot -Force
     Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $productPluginsRoot -Force -ErrorAction SilentlyContinue
 
-    Copy-Item -Path (Join-Path $buildDir "NavisworksMcpAddin.Plugin.dll") -Destination (Join-Path $NavisworksInstallDir "NavisworksMcpAddin.Plugin.dll") -Force
-    Copy-Item -Path $probeAssemblyPath -Destination (Join-Path $NavisworksInstallDir "NavisworksMcpProbe.Plugin.dll") -Force
-
     Remove-Item (Join-Path $productPluginsRoot "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcpAddin.Plugin.dll") -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcpProbe.Plugin.dll") -Force -ErrorAction SilentlyContinue
 }
 catch {
     Write-Warning "Could not install to the Navisworks product Plugins folder. Run PowerShell as Administrator if needed. $($_.Exception.Message)"

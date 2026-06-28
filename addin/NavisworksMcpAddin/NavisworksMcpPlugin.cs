@@ -45,14 +45,7 @@ public sealed class StartMcpPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        var result = NavisworksMcpRuntime.McpProcess.Start();
-        if (result.Ok)
-        {
-            McpConnectionManager.Start(SynchronizationContext.Current, "start command");
-        }
-
-        NavisworksMcpDialogs.Show("Start MCP", result.Message);
-        return result.Ok ? 0 : 1;
+        return NavisworksMcpActions.Start();
     }
 }
 
@@ -66,10 +59,7 @@ public sealed class StopMcpPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        McpConnectionManager.Stop();
-        var result = NavisworksMcpRuntime.McpProcess.Stop();
-        NavisworksMcpDialogs.Show("Stop MCP", result.Message);
-        return result.Ok ? 0 : 1;
+        return NavisworksMcpActions.Stop();
     }
 }
 
@@ -83,9 +73,7 @@ public sealed class StartPublicUrlPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        var result = NavisworksMcpRuntime.NgrokProcess.Start();
-        NavisworksMcpDialogs.Show("Start Public URL", result.Message);
-        return result.Ok ? 0 : 1;
+        return NavisworksMcpActions.StartPublicUrl();
     }
 }
 
@@ -99,9 +87,7 @@ public sealed class StopPublicUrlPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        var result = NavisworksMcpRuntime.NgrokProcess.Stop();
-        NavisworksMcpDialogs.Show("Stop Public URL", result.Message);
-        return result.Ok ? 0 : 1;
+        return NavisworksMcpActions.StopPublicUrl();
     }
 }
 
@@ -115,9 +101,7 @@ public sealed class CopyLocalUrlPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        Clipboard.SetText(NavisworksMcpRuntime.LocalMcpUrl);
-        NavisworksMcpDialogs.Show("Copy Local URL", $"Copied local MCP URL:{Environment.NewLine}{NavisworksMcpRuntime.LocalMcpUrl}");
-        return 0;
+        return NavisworksMcpActions.CopyLocalUrl();
     }
 }
 
@@ -131,17 +115,7 @@ public sealed class CopyPublicUrlPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
     {
-        var settings = NavisworksMcpRuntime.LoadSettings();
-        var publicUrl = NavisworksMcpRuntime.BuildPublicMcpUrl(settings);
-        if (string.IsNullOrWhiteSpace(publicUrl))
-        {
-            NavisworksMcpDialogs.Show("Copy Public URL", "Configure your fixed ngrok domain in Settings first.");
-            return 1;
-        }
-
-        Clipboard.SetText(publicUrl);
-        NavisworksMcpDialogs.Show("Copy Public URL", $"Copied public MCP URL:{Environment.NewLine}{publicUrl}");
-        return 0;
+        return NavisworksMcpActions.CopyPublicUrl();
     }
 }
 
@@ -154,6 +128,184 @@ public sealed class CopyPublicUrlPlugin : AddInPlugin
 public sealed class StatusPlugin : AddInPlugin
 {
     public override int Execute(params string[] parameters)
+    {
+        return NavisworksMcpActions.Status();
+    }
+}
+
+[Plugin(
+    "NavisworksMcpAddin.Settings",
+    "RRDL",
+    DisplayName = "Settings",
+    ToolTip = "Edit Navisworks MCP settings.")]
+[AddInPlugin(AddInLocation.AddIn)]
+public sealed class SettingsPlugin : AddInPlugin
+{
+    public override int Execute(params string[] parameters)
+    {
+        return NavisworksMcpActions.Settings();
+    }
+}
+
+[Plugin(
+    "NavisworksMcpAddin.OpenLogs",
+    "RRDL",
+    DisplayName = "Open Logs",
+    ToolTip = "Open the Navisworks MCP logs folder.")]
+[AddInPlugin(AddInLocation.AddIn)]
+public sealed class OpenLogsPlugin : AddInPlugin
+{
+    public override int Execute(params string[] parameters)
+    {
+        return NavisworksMcpActions.OpenLogs();
+    }
+}
+
+[Plugin(
+    "NavisworksMcpAddin.Commands",
+    "RRDL",
+    DisplayName = "Navisworks MCP",
+    ToolTip = "Navisworks MCP ribbon commands.")]
+[RibbonTab("NavisworksMcpAddin.RibbonTab", DisplayName = "Navisworks MCP")]
+[RibbonLayout(@"
+<RibbonControl xmlns=""clr-namespace:Autodesk.Windows;assembly=AdWindows"">
+  <RibbonTab Id=""NavisworksMcpAddin.RibbonTab"" Title=""Navisworks MCP"">
+    <RibbonPanel Source=""NavisworksMcpAddin.MainPanel"">
+      <RibbonPanelSource Id=""NavisworksMcpAddin.MainPanel"" Title=""MCP"">
+        <RibbonRowPanel>
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StartMcp"" Size=""Large"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StopMcp"" Size=""Large"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StatusCommand"" Size=""Large"" ShowText=""True"" />
+        </RibbonRowPanel>
+        <RibbonRowPanel>
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.CopyLocalUrlCommand"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.SettingsCommand"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.OpenLogsCommand"" ShowText=""True"" />
+        </RibbonRowPanel>
+        <RibbonRowPanel>
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StartPublicUrlCommand"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.StopPublicUrlCommand"" ShowText=""True"" />
+          <RibbonCommandButton CommandId=""NavisworksMcpAddin.CopyPublicUrlCommand"" ShowText=""True"" />
+        </RibbonRowPanel>
+      </RibbonPanelSource>
+    </RibbonPanel>
+  </RibbonTab>
+</RibbonControl>")]
+[Command("StartMcp", DisplayName = "Start MCP", ToolTip = "Start the local MCP server for Navisworks.")]
+[Command("StopMcp", DisplayName = "Stop MCP", ToolTip = "Stop the local MCP server for Navisworks.")]
+[Command("StatusCommand", DisplayName = "Status", ToolTip = "Show Navisworks MCP status.")]
+[Command("CopyLocalUrlCommand", DisplayName = "Copy Local URL", ToolTip = "Copy the local Navisworks MCP URL.")]
+[Command("SettingsCommand", DisplayName = "Settings", ToolTip = "Edit Navisworks MCP settings.")]
+[Command("OpenLogsCommand", DisplayName = "Open Logs", ToolTip = "Open the Navisworks MCP logs folder.")]
+[Command("StartPublicUrlCommand", DisplayName = "Start Public URL", ToolTip = "Start the fixed ngrok public URL for Navisworks MCP.")]
+[Command("StopPublicUrlCommand", DisplayName = "Stop Public URL", ToolTip = "Stop the fixed ngrok public URL for Navisworks MCP.")]
+[Command("CopyPublicUrlCommand", DisplayName = "Copy Public URL", ToolTip = "Copy the configured public Navisworks MCP URL.")]
+public sealed class NavisworksMcpCommandHandler : CommandHandlerPlugin
+{
+    public NavisworksMcpCommandHandler()
+    {
+        McpLog.Info("Navisworks MCP command handler instance constructed.");
+    }
+
+    public override int ExecuteCommand(string commandId, params string[] parameters)
+    {
+        McpLog.Info($"Navisworks MCP command handler ExecuteCommand reached: {commandId}");
+        switch (commandId)
+        {
+            case "StartMcp":
+                return NavisworksMcpActions.Start();
+            case "StopMcp":
+                return NavisworksMcpActions.Stop();
+            case "StatusCommand":
+                return NavisworksMcpActions.Status();
+            case "CopyLocalUrlCommand":
+                return NavisworksMcpActions.CopyLocalUrl();
+            case "SettingsCommand":
+                return NavisworksMcpActions.Settings();
+            case "OpenLogsCommand":
+                return NavisworksMcpActions.OpenLogs();
+            case "StartPublicUrlCommand":
+                return NavisworksMcpActions.StartPublicUrl();
+            case "StopPublicUrlCommand":
+                return NavisworksMcpActions.StopPublicUrl();
+            case "CopyPublicUrlCommand":
+                return NavisworksMcpActions.CopyPublicUrl();
+            default:
+                NavisworksMcpDialogs.Show("Navisworks MCP", $"Unknown command: {commandId}");
+                return 1;
+        }
+    }
+
+    public override CommandState CanExecuteCommand(string commandId)
+    {
+        return new CommandState(true);
+    }
+
+    public override bool CanExecuteRibbonTab(string ribbonTabId)
+    {
+        return true;
+    }
+}
+
+internal static class NavisworksMcpActions
+{
+    public static int Start()
+    {
+        var result = NavisworksMcpRuntime.McpProcess.Start();
+        if (result.Ok)
+        {
+            McpConnectionManager.Start(SynchronizationContext.Current, "start command");
+        }
+
+        NavisworksMcpDialogs.Show("Start MCP", result.Message);
+        return result.Ok ? 0 : 1;
+    }
+
+    public static int Stop()
+    {
+        McpConnectionManager.Stop();
+        var result = NavisworksMcpRuntime.McpProcess.Stop();
+        NavisworksMcpDialogs.Show("Stop MCP", result.Message);
+        return result.Ok ? 0 : 1;
+    }
+
+    public static int StartPublicUrl()
+    {
+        var result = NavisworksMcpRuntime.NgrokProcess.Start();
+        NavisworksMcpDialogs.Show("Start Public URL", result.Message);
+        return result.Ok ? 0 : 1;
+    }
+
+    public static int StopPublicUrl()
+    {
+        var result = NavisworksMcpRuntime.NgrokProcess.Stop();
+        NavisworksMcpDialogs.Show("Stop Public URL", result.Message);
+        return result.Ok ? 0 : 1;
+    }
+
+    public static int CopyLocalUrl()
+    {
+        Clipboard.SetText(NavisworksMcpRuntime.LocalMcpUrl);
+        NavisworksMcpDialogs.Show("Copy Local URL", $"Copied local MCP URL:{Environment.NewLine}{NavisworksMcpRuntime.LocalMcpUrl}");
+        return 0;
+    }
+
+    public static int CopyPublicUrl()
+    {
+        var settings = NavisworksMcpRuntime.LoadSettings();
+        var publicUrl = NavisworksMcpRuntime.BuildPublicMcpUrl(settings);
+        if (string.IsNullOrWhiteSpace(publicUrl))
+        {
+            NavisworksMcpDialogs.Show("Copy Public URL", "Configure your fixed ngrok domain in Settings first.");
+            return 1;
+        }
+
+        Clipboard.SetText(publicUrl);
+        NavisworksMcpDialogs.Show("Copy Public URL", $"Copied public MCP URL:{Environment.NewLine}{publicUrl}");
+        return 0;
+    }
+
+    public static int Status()
     {
         var settings = NavisworksMcpRuntime.LoadSettings();
         var publicUrl = string.IsNullOrWhiteSpace(settings.NgrokDomain)
@@ -169,33 +321,15 @@ public sealed class StatusPlugin : AddInPlugin
             $"Settings: {NavisworksMcpRuntime.SettingsPath}");
         return 0;
     }
-}
 
-[Plugin(
-    "NavisworksMcpAddin.Settings",
-    "RRDL",
-    DisplayName = "Settings",
-    ToolTip = "Edit Navisworks MCP settings.")]
-[AddInPlugin(AddInLocation.AddIn)]
-public sealed class SettingsPlugin : AddInPlugin
-{
-    public override int Execute(params string[] parameters)
+    public static int Settings()
     {
         using var form = new SettingsForm();
         form.ShowDialog();
         return 0;
     }
-}
 
-[Plugin(
-    "NavisworksMcpAddin.OpenLogs",
-    "RRDL",
-    DisplayName = "Open Logs",
-    ToolTip = "Open the Navisworks MCP logs folder.")]
-[AddInPlugin(AddInLocation.AddIn)]
-public sealed class OpenLogsPlugin : AddInPlugin
-{
-    public override int Execute(params string[] parameters)
+    public static int OpenLogs()
     {
         NavisworksMcpRuntime.OpenAppDataDirectory();
         return 0;

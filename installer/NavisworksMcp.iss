@@ -49,6 +49,12 @@ Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\NavisworksMcp.Plu
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2025\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2026\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2022\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2024\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2025\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2026\NavisworksMcpAddin.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2021\Plugins\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2022\Plugins\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Manage 2023\Plugins\NavisworksMcp.Plugin.dll"
@@ -73,6 +79,12 @@ Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\NavisworksMcp.P
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcp.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2021\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2022\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2024\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2025\NavisworksMcpAddin.Plugin.dll"
+Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2026\NavisworksMcpAddin.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2021\Plugins\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2022\Plugins\NavisworksMcp.Plugin.dll"
 Type: files; Name: "{commonpf}\Autodesk\Navisworks Simulate 2023\Plugins\NavisworksMcp.Plugin.dll"
@@ -166,11 +178,9 @@ begin
     CopyDirectoryContents(SourceContentsDir, ProductPluginFlatDir);
     DeleteFile(ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll');
 
-    if FileExists(SourceContentsDir + '\NavisworksMcpAddin.Plugin.dll') then
-      CopyFile(SourceContentsDir + '\NavisworksMcpAddin.Plugin.dll', InstallDir + '\NavisworksMcpAddin.Plugin.dll', False);
-    if FileExists(SourceContentsDir + '\NavisworksMcpProbe.Plugin.dll') then
-      CopyFile(SourceContentsDir + '\NavisworksMcpProbe.Plugin.dll', InstallDir + '\NavisworksMcpProbe.Plugin.dll', False);
     DeleteFile(InstallDir + '\NavisworksMcp.Plugin.dll');
+    DeleteFile(InstallDir + '\NavisworksMcpAddin.Plugin.dll');
+    DeleteFile(InstallDir + '\NavisworksMcpProbe.Plugin.dll');
   end;
 end;
 
