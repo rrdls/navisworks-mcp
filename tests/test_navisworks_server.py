@@ -68,7 +68,7 @@ def test_package_contents_template_points_to_navisworks_plugin() -> None:
 
     assert root.attrib["AutodeskProduct"] == "Navisworks"
     assert component_entry is not None
-    assert component_entry.attrib["ModuleName"] == "./Contents/NavisworksMcpAddin.dll"
+    assert component_entry.attrib["ModuleName"] == "./Contents/NavisworksMcpAddin.Plugin.dll"
     assert runtime_requirements is not None
     assert runtime_requirements.attrib["OS"] == "Win64"
     assert "Platform" not in runtime_requirements.attrib
@@ -78,4 +78,4 @@ def test_package_contents_template_points_to_navisworks_plugin() -> None:
         entry.attrib["ModuleName"]
         for entry in root.findall("./Components/ComponentEntry")
     }
-    assert "./Contents/NavisworksMcpProbe.dll" in component_modules
+    assert "./Contents/NavisworksMcpProbe.Plugin.dll" in component_modules

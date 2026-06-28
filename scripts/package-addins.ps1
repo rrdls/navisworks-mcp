@@ -41,11 +41,11 @@ foreach ($version in $NavisworksVersions) {
     dotnet restore $probeProjectPath -p:NavisworksVersion=$version -p:NavisworksInstallDir="$navisworksInstallDir" -p:TargetFramework=$TargetFramework
     dotnet build $probeProjectPath -c $Configuration -f $TargetFramework -p:NavisworksVersion=$version -p:NavisworksInstallDir="$navisworksInstallDir" --no-restore
 
-    if (!(Test-Path (Join-Path $sourceDir "NavisworksMcpAddin.dll"))) {
-        throw "Build output is missing NavisworksMcpAddin.dll: $sourceDir"
+    if (!(Test-Path (Join-Path $sourceDir "NavisworksMcpAddin.Plugin.dll"))) {
+        throw "Build output is missing NavisworksMcpAddin.Plugin.dll: $sourceDir"
     }
-    if (!(Test-Path (Join-Path $probeSourceDir "NavisworksMcpProbe.dll"))) {
-        throw "Build output is missing NavisworksMcpProbe.dll: $probeSourceDir"
+    if (!(Test-Path (Join-Path $probeSourceDir "NavisworksMcpProbe.Plugin.dll"))) {
+        throw "Build output is missing NavisworksMcpProbe.Plugin.dll: $probeSourceDir"
     }
     if (Get-ChildItem -Path $sourceDir -Filter "RevitMcp*" -Recurse -ErrorAction SilentlyContinue) {
         throw "Build output contains stale RevitMcp artifacts. Remove bin/obj and rebuild."
@@ -72,8 +72,8 @@ foreach ($version in $NavisworksVersions) {
     }
     New-Item -ItemType Directory -Force -Path $contentsDir | Out-Null
     Copy-Item -Path (Join-Path $sourceDir "*") -Destination $contentsDir -Recurse -Force
-    Copy-Item -Path (Join-Path $probeSourceDir "NavisworksMcpProbe.dll") -Destination $contentsDir -Force
-    Copy-Item -Path (Join-Path $probeSourceDir "NavisworksMcpProbe.pdb") -Destination $contentsDir -Force -ErrorAction SilentlyContinue
+    Copy-Item -Path (Join-Path $probeSourceDir "NavisworksMcpProbe.Plugin.dll") -Destination $contentsDir -Force
+    Copy-Item -Path (Join-Path $probeSourceDir "NavisworksMcpProbe.Plugin.pdb") -Destination $contentsDir -Force -ErrorAction SilentlyContinue
     (Get-Content (Join-Path $repoRoot "addin\NavisworksMcpAddin\PackageContents.xml.template") -Raw).
         Replace("{NAVISWORKS_VERSION}", $version) |
         Set-Content -Encoding UTF8 (Join-Path $targetDir "PackageContents.xml")

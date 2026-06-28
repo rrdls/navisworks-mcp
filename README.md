@@ -94,7 +94,7 @@ This creates:
 
 ```text
 %APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle
-C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcp.Plugin.dll
+C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcpAddin.Plugin.dll
 C:\Program Files\Autodesk\Navisworks Manage <version>\NavisworksMcpProbe.Plugin.dll
 ```
 

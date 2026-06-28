@@ -32,8 +32,8 @@ if (!(Test-Path $addinsRoot)) {
     throw "Release layout is missing addins folder: $addinsRoot"
 }
 
-$addinDlls = Get-ChildItem -Path $addinsRoot -Filter "NavisworksMcpAddin.dll" -Recurse -ErrorAction SilentlyContinue
-$probeDlls = Get-ChildItem -Path $addinsRoot -Filter "NavisworksMcpProbe.dll" -Recurse -ErrorAction SilentlyContinue
+$addinDlls = Get-ChildItem -Path $addinsRoot -Filter "NavisworksMcpAddin.Plugin.dll" -Recurse -ErrorAction SilentlyContinue
+$probeDlls = Get-ChildItem -Path $addinsRoot -Filter "NavisworksMcpProbe.Plugin.dll" -Recurse -ErrorAction SilentlyContinue
 if ($RequireAddin -and $addinDlls.Count -eq 0) {
     throw "Release layout has no packaged Navisworks plugin DLLs under $addinsRoot"
 }
@@ -63,8 +63,8 @@ foreach ($fileName in $forbiddenAddinDependencies) {
 
 foreach ($versionDir in Get-ChildItem -Path $addinsRoot -Directory -ErrorAction SilentlyContinue) {
     $packageContents = Join-Path $versionDir.FullName "PackageContents.xml"
-    $pluginDll = Join-Path $versionDir.FullName "Contents\NavisworksMcpAddin.dll"
-    $probeDll = Join-Path $versionDir.FullName "Contents\NavisworksMcpProbe.dll"
+    $pluginDll = Join-Path $versionDir.FullName "Contents\NavisworksMcpAddin.Plugin.dll"
+    $probeDll = Join-Path $versionDir.FullName "Contents\NavisworksMcpProbe.Plugin.dll"
     if (!(Test-Path $packageContents)) {
         throw "Packaged Navisworks plugin is missing PackageContents.xml: $packageContents"
     }

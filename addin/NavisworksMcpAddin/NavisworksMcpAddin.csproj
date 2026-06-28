@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
+    <AssemblyName>NavisworksMcpAddin.Plugin</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <NavisworksInstallDir Condition="'$(NavisworksInstallDir)' == ''">C:\Program Files\Autodesk\Navisworks Manage $(NavisworksVersion)</NavisworksInstallDir>
   </PropertyGroup>
@@ -12,10 +13,6 @@
   <ItemGroup>
     <Reference Include="Autodesk.Navisworks.Api">
       <HintPath>$(NavisworksInstallDir)\Autodesk.Navisworks.Api.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Autodesk.Navisworks.Api.ComApi">
-      <HintPath>$(NavisworksInstallDir)\Autodesk.Navisworks.Api.ComApi.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="System.Web.Extensions" />

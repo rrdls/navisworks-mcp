@@ -41,11 +41,11 @@ dotnet build $ProjectPath -c $Configuration -f $TargetFramework -p:NavisworksVer
 dotnet restore $probeProjectPath -p:NavisworksVersion=$NavisworksVersion -p:NavisworksInstallDir="$NavisworksInstallDir" -p:TargetFramework=$TargetFramework
 dotnet build $probeProjectPath -c $Configuration -f $TargetFramework -p:NavisworksVersion=$NavisworksVersion -p:NavisworksInstallDir="$NavisworksInstallDir" --no-restore
 
-$assemblyPath = Join-Path $buildDir "NavisworksMcpAddin.dll"
+$assemblyPath = Join-Path $buildDir "NavisworksMcpAddin.Plugin.dll"
 if (!(Test-Path $assemblyPath)) {
     throw "Built assembly not found: $assemblyPath"
 }
-$probeAssemblyPath = Join-Path $probeBuildDir "NavisworksMcpProbe.dll"
+$probeAssemblyPath = Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.dll"
 if (!(Test-Path $probeAssemblyPath)) {
     throw "Built probe assembly not found: $probeAssemblyPath"
 }
@@ -76,16 +76,16 @@ New-Item -ItemType Directory -Force -Path $contentsDir | Out-Null
 
 Copy-Item -Path (Join-Path $buildDir "*") -Destination $contentsDir -Recurse -Force
 Copy-Item -Path $probeAssemblyPath -Destination $contentsDir -Force
-Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.pdb") -Destination $contentsDir -Force -ErrorAction SilentlyContinue
+Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $contentsDir -Force -ErrorAction SilentlyContinue
 $templatePath = Join-Path $projectDir "PackageContents.xml.template"
 $packageContentsPath = Join-Path $bundleRoot "PackageContents.xml"
 (Get-Content $templatePath -Raw).Replace("{NAVISWORKS_VERSION}", $NavisworksVersion) | Set-Content -Encoding UTF8 $packageContentsPath
 
-if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpAddin.dll"))) {
-    throw "Installed bundle is missing NavisworksMcpAddin.dll."
+if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpAddin.Plugin.dll"))) {
+    throw "Installed bundle is missing NavisworksMcpAddin.Plugin.dll."
 }
-if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpProbe.dll"))) {
-    throw "Installed bundle is missing NavisworksMcpProbe.dll."
+if (!(Test-Path (Join-Path $contentsDir "NavisworksMcpProbe.Plugin.dll"))) {
+    throw "Installed bundle is missing NavisworksMcpProbe.Plugin.dll."
 }
 if (Get-ChildItem -Path $contentsDir -Filter "RevitMcp*" -Recurse -ErrorAction SilentlyContinue) {
     throw "Installed bundle contains stale RevitMcp artifacts."
@@ -100,7 +100,7 @@ try {
     New-Item -ItemType Directory -Force -Path $programDataContentsDir | Out-Null
     Copy-Item -Path (Join-Path $buildDir "*") -Destination $programDataContentsDir -Recurse -Force
     Copy-Item -Path $probeAssemblyPath -Destination $programDataContentsDir -Force
-    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.pdb") -Destination $programDataContentsDir -Force -ErrorAction SilentlyContinue
+    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $programDataContentsDir -Force -ErrorAction SilentlyContinue
     (Get-Content $templatePath -Raw).Replace("{NAVISWORKS_VERSION}", $NavisworksVersion) | Set-Content -Encoding UTF8 (Join-Path $programDataBundleRoot "PackageContents.xml")
 }
 catch {
@@ -115,17 +115,18 @@ try {
     New-Item -ItemType Directory -Force -Path $productPluginDir | Out-Null
     Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginDir -Recurse -Force
     Copy-Item -Path $probeAssemblyPath -Destination $productPluginDir -Force
-    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.pdb") -Destination $productPluginDir -Force -ErrorAction SilentlyContinue
+    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $productPluginDir -Force -ErrorAction SilentlyContinue
 
     $productPluginsRoot = Join-Path $NavisworksInstallDir "Plugins"
     Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginsRoot -Recurse -Force
     Copy-Item -Path $probeAssemblyPath -Destination $productPluginsRoot -Force
-    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.pdb") -Destination $productPluginsRoot -Force -ErrorAction SilentlyContinue
-    Copy-Item -Path (Join-Path $buildDir "NavisworksMcpAddin.dll") -Destination (Join-Path $productPluginsRoot "NavisworksMcp.Plugin.dll") -Force
-    Copy-Item -Path $probeAssemblyPath -Destination (Join-Path $productPluginsRoot "NavisworksMcpProbe.Plugin.dll") -Force
+    Copy-Item -Path (Join-Path $probeBuildDir "NavisworksMcpProbe.Plugin.pdb") -Destination $productPluginsRoot -Force -ErrorAction SilentlyContinue
 
-    Copy-Item -Path (Join-Path $buildDir "NavisworksMcpAddin.dll") -Destination (Join-Path $NavisworksInstallDir "NavisworksMcp.Plugin.dll") -Force
+    Copy-Item -Path (Join-Path $buildDir "NavisworksMcpAddin.Plugin.dll") -Destination (Join-Path $NavisworksInstallDir "NavisworksMcpAddin.Plugin.dll") -Force
     Copy-Item -Path $probeAssemblyPath -Destination (Join-Path $NavisworksInstallDir "NavisworksMcpProbe.Plugin.dll") -Force
+
+    Remove-Item (Join-Path $productPluginsRoot "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $NavisworksInstallDir "NavisworksMcp.Plugin.dll") -Force -ErrorAction SilentlyContinue
 }
 catch {
     Write-Warning "Could not install to the Navisworks product Plugins folder. Run PowerShell as Administrator if needed. $($_.Exception.Message)"
@@ -138,7 +139,7 @@ Write-Host "  $programDataBundleRoot"
 Write-Host "Product plugin folder:"
 Write-Host "  $productPluginDir"
 Write-Host "Assembly:"
-Write-Host "  $(Join-Path $contentsDir 'NavisworksMcpAddin.dll')"
+Write-Host "  $(Join-Path $contentsDir 'NavisworksMcpAddin.Plugin.dll')"
 Write-Host "Target framework:"
 Write-Host "  $TargetFramework"
 Write-Host ""

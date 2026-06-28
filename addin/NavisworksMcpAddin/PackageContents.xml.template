@@ -13,9 +13,9 @@
     <RuntimeRequirements OS="Win64" />
     <ComponentEntry
       AppName="Navisworks MCP"
-      ModuleName="./Contents/NavisworksMcpAddin.dll" />
+      ModuleName="./Contents/NavisworksMcpAddin.Plugin.dll" />
     <ComponentEntry
       AppName="Navisworks MCP Probe"
-      ModuleName="./Contents/NavisworksMcpProbe.dll" />
+      ModuleName="./Contents/NavisworksMcpProbe.Plugin.dll" />
   </Components>
 </ApplicationPackage>

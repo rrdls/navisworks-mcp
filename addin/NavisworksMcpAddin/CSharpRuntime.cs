@@ -31,6 +31,7 @@ public static class CSharpRuntime
         var compileResult = provider.CompileAssemblyFromSource(parameters, source);
         if (compileResult.Errors.HasErrors)
         {
+            var sourcePath = WriteFailedSource(source);
             var diagnostics = string.Join(
                 Environment.NewLine,
                 compileResult.Errors
@@ -38,7 +39,8 @@ public static class CSharpRuntime
                     .Where(error => !error.IsWarning)
                     .Select(error => error.ToString()));
 
-            throw new InvalidOperationException($"Compilation failed:{Environment.NewLine}{diagnostics}");
+            throw new InvalidOperationException(
+                $"Compilation failed. Generated source: {sourcePath}{Environment.NewLine}{diagnostics}");
         }
 
         var assembly = compileResult.CompiledAssembly;
@@ -80,6 +82,26 @@ namespace NavisworksMcpRuntime
     }
 }
 ";
+    }
+
+    private static string WriteFailedSource(string source)
+    {
+        try
+        {
+            var directory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NavisworksMcp",
+                "failed-sources");
+            Directory.CreateDirectory(directory);
+
+            var path = Path.Combine(directory, $"failed-{DateTimeOffset.Now:yyyyMMdd-HHmmss-fff}.cs");
+            File.WriteAllText(path, source);
+            return path;
+        }
+        catch (Exception ex)
+        {
+            return $"<could not write generated source: {ex.Message}>";
+        }
     }
 
     private static string Indent(string text, int spaces)
