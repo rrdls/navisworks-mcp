@@ -17,14 +17,18 @@ if (!(Test-Path $venvDir)) {
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 & $pythonExe -m pip install --upgrade pip
 & $pythonExe -m pip install -e "${pythonDir}[build]"
+& $pythonExe -c "import jsonschema_specifications; list(jsonschema_specifications.REGISTRY)"
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+Remove-Item -Force -ErrorAction SilentlyContinue `
+    (Join-Path $distDir "NavisworksMcpServer.exe"),
+    (Join-Path $distDir "NavisworksMcpLauncher.exe")
 
 & $pythonExe -m PyInstaller `
     --noconfirm `
     --clean `
     --onefile `
-    --collect-data jsonschema_specifications `
+    --additional-hooks-dir (Join-Path $repoRoot "packaging\pyinstaller\hooks") `
     --name NavisworksMcpServer `
     --distpath $distDir `
     --workpath $workDir `
@@ -36,7 +40,7 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
     --clean `
     --onefile `
     --windowed `
-    --collect-data jsonschema_specifications `
+    --additional-hooks-dir (Join-Path $repoRoot "packaging\pyinstaller\hooks") `
     --name NavisworksMcpLauncher `
     --distpath $distDir `
     --workpath $workDir `
