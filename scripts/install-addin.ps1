@@ -82,6 +82,10 @@ try {
     }
     New-Item -ItemType Directory -Force -Path $productPluginDir | Out-Null
     Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginDir -Recurse -Force
+
+    $productPluginsRoot = Join-Path $NavisworksInstallDir "Plugins"
+    Copy-Item -Path (Join-Path $buildDir "*") -Destination $productPluginsRoot -Recurse -Force
+    Copy-Item -Path (Join-Path $buildDir "NavisworksMcpAddin.dll") -Destination (Join-Path $productPluginsRoot "NavisworksMcp.Plugin.dll") -Force
 }
 catch {
     Write-Warning "Could not install to the Navisworks product Plugins folder. Run PowerShell as Administrator if needed. $($_.Exception.Message)"

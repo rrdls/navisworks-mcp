@@ -79,11 +79,13 @@ var
   ApiPath: string;
   InstallDir: string;
   SourceDir: string;
+  SourceContentsDir: string;
   BundleDir: string;
   ContentsDir: string;
   ProgramDataBundleDir: string;
   ProgramDataContentsDir: string;
   ProductPluginDir: string;
+  ProductPluginFlatDir: string;
 begin
   InstallDir := ExpandConstant('{pf}\Autodesk\Navisworks Manage ' + Version);
   ApiPath := InstallDir + '\Autodesk.Navisworks.Api.dll';
@@ -94,6 +96,7 @@ begin
   end;
 
   SourceDir := ExpandConstant('{app}\addins\' + Version);
+  SourceContentsDir := SourceDir + '\Contents';
 
   if FileExists(ApiPath) and DirExists(SourceDir) then
   begin
@@ -114,7 +117,12 @@ begin
     ProductPluginDir := InstallDir + '\Plugins\NavisworksMcp';
     DelTree(ProductPluginDir, True, True, True);
     ForceDirectories(ProductPluginDir);
-    CopyDirectoryContents(SourceDir + '\Contents', ProductPluginDir);
+    CopyDirectoryContents(SourceContentsDir, ProductPluginDir);
+
+    ProductPluginFlatDir := InstallDir + '\Plugins';
+    CopyDirectoryContents(SourceContentsDir, ProductPluginFlatDir);
+    if FileExists(ProductPluginFlatDir + '\NavisworksMcpAddin.dll') then
+      FileCopy(ProductPluginFlatDir + '\NavisworksMcpAddin.dll', ProductPluginFlatDir + '\NavisworksMcp.Plugin.dll', False);
   end;
 end;
 
