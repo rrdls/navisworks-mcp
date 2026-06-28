@@ -1,6 +1,6 @@
-# Revit MCP
+# Navisworks MCP
 
-Revit MCP lets ChatGPT or another MCP client execute focused C# snippets inside Autodesk Revit.
+Navisworks MCP lets ChatGPT or another MCP client execute focused C# snippets inside Autodesk Navisworks.
 
 The local architecture is:
 
@@ -8,41 +8,49 @@ The local architecture is:
 ChatGPT / MCP client
   -> local MCP server
   -> localhost WebSocket
-  -> Revit add-in
-  -> ExternalEvent
+  -> Navisworks plugin
   -> Roslyn C# runtime
-  -> Revit API
+  -> Navisworks .NET API
 ```
 
 The project is local-first. There is no hosted backend required.
 
-## Supported Revit Versions
+## Current Status
 
-Current target:
+This repository was migrated from the Revit MCP project. The Python MCP server, WebSocket bridge, launcher, tunnel flow, and packaging structure have been adapted to Navisworks.
 
-```text
-Revit 2021-2024 -> .NET Framework 4.8 / net48
-Revit 2025-2026 -> .NET 8 / net8.0-windows
-```
+The first supported workflow is:
 
-Build and test each Revit version against that version's own `RevitAPI.dll`.
+1. Start the local MCP server.
+2. Open Navisworks.
+3. Run the `Navisworks MCP` plugin command inside Navisworks.
+4. Execute small C# snippets against the active Navisworks document.
+
+Navisworks is primarily a coordination/review environment. Do not expect Revit-style BIM authoring operations such as creating native walls, doors, families, or levels.
 
 ## MCP Tools
 
 ```text
-run_revit_code(code: string, timeout_seconds: number = 60) -> string
-get_revit_mcp_prompt() -> string
-get_revit_context(timeout_seconds: number = 30) -> string
+run_navisworks_code(code: string, timeout_seconds: number = 60) -> string
+get_navisworks_mcp_prompt() -> string
+get_navisworks_context(timeout_seconds: number = 30) -> string
 ```
 
-`run_revit_code` expects only the body of a generated C# method. Do not send `using` directives, namespace/class declarations, or a `Run` method.
+`run_navisworks_code` expects only the body of a generated C# method. Do not send `using` directives, namespace/class declarations, or a `Run` method.
 
-The add-in already provides:
+The runtime already provides:
 
 ```csharp
-UIApplication app
-UIDocument uidoc
 Document doc
+```
+
+Common namespaces are already imported:
+
+```csharp
+Autodesk.Navisworks.Api
+System
+System.Linq
+System.Collections.Generic
 ```
 
 Correct:
@@ -54,104 +62,41 @@ return doc.Title;
 Wrong:
 
 ```csharp
-Document doc = uidoc.Document;
+using Autodesk.Navisworks.Api;
+Document doc = Autodesk.Navisworks.Api.Application.ActiveDocument;
 ```
 
-For version-sensitive API usage, call `get_revit_context()` first and adapt generated code to the returned Revit version.
+For version-sensitive API usage, call `get_navisworks_context()` first and adapt generated code to the returned Navisworks version/context.
 
-## Tutorial Para Usuários Leigos
+## Developer Setup
 
-This is the intended final experience once an installer release is published.
-
-1. Download `RevitMcpSetup.exe` from Releases.
-2. Run the installer.
-3. Open or restart Revit.
-4. Open the `Revit MCP` app from the Start Menu.
-5. Click `Start MCP`.
-6. Click `Start Tunnel`.
-7. Copy the URL shown by the app. It should end with:
-
-```text
-/mcp
-```
-
-8. Add that MCP URL in ChatGPT.
-9. Test with:
-
-```csharp
-return doc.Title;
-```
-
-If something fails, open logs from the launcher or check:
-
-```text
-%LOCALAPPDATA%\RevitMcp\addin.log
-```
-
-### Important User Notes
-
-- Revit must be open.
-- A project or family document should be active.
-- The tool can modify the model. Review requests before allowing destructive changes.
-- Large tasks should be split into small steps: levels, walls, doors, windows, floors, then views/rooms/annotations.
-
-## Tutorial Para Devs
-
-Use this path while developing from source.
-
-### Requirements
+Requirements:
 
 - Windows
-- Revit 2021-2026
-- .NET SDK 8
+- Autodesk Navisworks Manage or Simulate
+- .NET SDK
 - Python 3.11+
 - PowerShell
 
-### 1. Clone And Enter The Repo
+Detect Navisworks:
 
 ```powershell
-git clone <repo-url>
-cd revit-mcp
+.\scripts\find-navisworks.ps1
 ```
 
-If working from WSL, prefer copying the project to a normal Windows path such as:
-
-```text
-C:\dev\revit-mcp
-```
-
-Revit and .NET are more reliable with local Windows paths than `\\wsl$` UNC paths.
-
-### 2. Detect Revit
+Build and install the plugin bundle:
 
 ```powershell
-.\scripts\find-revit.ps1
-```
-
-Example output:
-
-```text
-Version    : 2024
-InstallDir : C:\Program Files\Autodesk\Revit 2024
-```
-
-### 3. Build And Install The Add-in
-
-For Revit 2024:
-
-```powershell
-.\scripts\install-addin.ps1 -RevitVersion 2024 -RevitInstallDir "C:\Program Files\Autodesk\Revit 2024"
+.\scripts\install-addin.ps1 -NavisworksVersion 2026 -NavisworksInstallDir "C:\Program Files\Autodesk\Navisworks Manage 2026"
 ```
 
 This creates:
 
 ```text
-%APPDATA%\Autodesk\Revit\Addins\2024\RevitMcp.addin
+%APPDATA%\Autodesk\ApplicationPlugins\NavisworksMcp.bundle
 ```
 
-### 4. Start MCP Over HTTP
-
-For ChatGPT/tunnel usage:
+Start MCP over HTTP:
 
 ```powershell
 .\scripts\run-http-server.ps1
@@ -163,53 +108,13 @@ This starts:
 http://127.0.0.1:8000/mcp
 ```
 
-The Revit add-in connects locally to:
+The Navisworks plugin connects locally to:
 
 ```text
 ws://127.0.0.1:8765
 ```
 
-### 5. Start A Tunnel
-
-Example with ngrok:
-
-```powershell
-ngrok http 8000
-```
-
-Use the public URL with `/mcp` appended:
-
-```text
-https://your-ngrok-domain.ngrok-free.app/mcp
-```
-
-Example with Cloudflare Tunnel:
-
-```powershell
-cloudflared tunnel --url http://127.0.0.1:8000
-```
-
-Use:
-
-```text
-https://your-cloudflare-domain.trycloudflare.com/mcp
-```
-
-### 6. Test
-
-Open or restart Revit, then call:
-
-```csharp
-return doc.Title;
-```
-
-For local automated Python tests:
-
-```powershell
-.\scripts\test-python.ps1
-```
-
-To test the Python/WebSocket path without Revit:
+To test the Python/WebSocket path without Navisworks:
 
 Terminal 1:
 
@@ -220,22 +125,18 @@ Terminal 1:
 Terminal 2:
 
 ```powershell
-.\.venv\Scripts\python.exe -m revit_mcp.fake_revit_client
+.\.venv\Scripts\python.exe -m navisworks_mcp.fake_navisworks_client
 ```
 
-## Packaging For Releases
+Run local Python tests:
 
-The release plan is:
-
-```text
-RevitMcpLauncher.exe -> user-facing app
-RevitMcpServer.exe   -> hidden MCP server
-cloudflared.exe      -> bundled temporary tunnel
-Revit add-in DLLs    -> one folder per Revit version
-Inno Setup installer -> installs app and writes .addin files
+```powershell
+.\scripts\test-python.ps1
 ```
 
-### Build Python EXEs
+## Packaging
+
+Build Python executables:
 
 ```powershell
 .\scripts\build-server-exe.ps1
@@ -244,169 +145,56 @@ Inno Setup installer -> installs app and writes .addin files
 Outputs:
 
 ```text
-dist\RevitMcp\app\RevitMcpServer.exe
-dist\RevitMcp\app\RevitMcpLauncher.exe
+dist\NavisworksMcp\app\NavisworksMcpServer.exe
+dist\NavisworksMcp\app\NavisworksMcpLauncher.exe
 ```
 
-### Package Add-ins
-
-This builds every installed/supported Revit version it can find and skips missing versions:
+Package available Navisworks plugin builds:
 
 ```powershell
 .\scripts\package-addins.ps1
 ```
 
-Outputs:
-
-```text
-dist\RevitMcp\addins\2024\RevitMcpAddin.dll
-dist\RevitMcp\addins\2025\RevitMcpAddin.dll
-...
-```
-
-### Build Full Package
+Build a release layout:
 
 ```powershell
 .\scripts\package-release.ps1
 ```
 
-By default this downloads `cloudflared.exe` into:
+The installer script is:
 
 ```text
-dist\RevitMcp\app\cloudflared.exe
+installer\NavisworksMcp.iss
 ```
-
-To skip that download:
-
-```powershell
-.\scripts\package-release.ps1 -SkipCloudflared
-```
-
-To validate an already-built release layout:
-
-```powershell
-.\scripts\check-release-layout.ps1 -RequireAddin
-```
-
-If Inno Setup 6 is installed, the script finds `ISCC.exe` from `PATH` or the default Windows install folders and also builds:
-
-```text
-dist\installer\RevitMcpSetup.exe
-```
-
-### Publish GitHub Release From Terminal
-
-Install and login with GitHub CLI:
-
-```powershell
-gh auth login
-```
-
-Create a release with the installer:
-
-```powershell
-gh release create v0.1.0 dist\installer\RevitMcpSetup.exe --title "Revit MCP v0.1.0" --notes "Initial release"
-```
-
-If the tag already exists, upload or replace the installer:
-
-```powershell
-gh release upload v0.1.0 dist\installer\RevitMcpSetup.exe --clobber
-```
-
-The Inno script is:
-
-```text
-installer\RevitMcp.iss
-```
-
-## Landing Page / GitHub Pages
-
-The public landing page lives in:
-
-```text
-docs\index.html
-docs\styles.css
-```
-
-In GitHub Pages, set the source to the `docs` folder on the default branch.
-
-## Launcher Behavior
-
-The launcher hides the MCP details from regular users:
-
-- starts `RevitMcpServer.exe`;
-- starts `cloudflared` or `ngrok` if available;
-- captures the public tunnel URL;
-- appends `/mcp`;
-- copies the final URL for ChatGPT;
-- opens the logs folder.
-
-`cloudflared.exe` is downloaded during `package-release.ps1` and installed next to `RevitMcpLauncher.exe`. `ngrok.exe` is optional and is not bundled.
 
 ## Troubleshooting
 
-### Revit Does Not Connect
-
-Check:
+Logs are written to:
 
 ```text
-%LOCALAPPDATA%\RevitMcp\addin.log
+%LOCALAPPDATA%\NavisworksMcp\addin.log
 ```
 
-Also confirm:
+If Navisworks does not connect:
 
-- Revit was restarted after installing the add-in.
-- The MCP server is running.
-- Port `8765` is free.
-- The `.addin` file exists under `%APPDATA%\Autodesk\Revit\Addins\<version>`.
+- Start the MCP server first.
+- Open or restart Navisworks after installing the bundle.
+- Run the `Navisworks MCP` plugin command.
+- Confirm port `8765` is free.
+- Check the log file above.
 
-### ChatGPT Cannot Reach MCP
+If snippets fail to compile:
 
-Check:
-
-- MCP HTTP server is running on `http://127.0.0.1:8000/mcp`.
-- Tunnel points to port `8000`, not `8765`.
-- Public URL ends with `/mcp`.
-
-### Revit Code Fails To Compile
-
-Use `get_revit_mcp_prompt()` and follow these rules:
-
-- send only method-body C#;
-- do not include `using`;
-- do not include classes or methods;
-- do not redeclare `doc`, `uidoc`, or `app`;
-- split large operations into smaller calls.
+- Send only the method body.
+- Do not include `using` statements.
+- Do not redeclare `doc`.
+- Keep snippets small.
+- Call `get_navisworks_context()` before using version-sensitive API calls.
 
 ## Security
 
-This project executes C# inside Revit. Treat it like a local automation console.
+This project executes generated C# inside Navisworks. Treat it like a local automation console.
 
-Recommended defaults for public releases:
-
-- local-only MCP server;
-- visible launcher status;
-- logs for executed code;
-- optional read-only mode in the future;
-- confirmation UI for destructive operations in the future.
-
-## Useful Commands
-
-Uninstall add-in for one Revit version:
-
-```powershell
-.\scripts\uninstall-addin.ps1 -RevitVersion 2024
-```
-
-Force dependency install when running the HTTP server:
-
-```powershell
-.\scripts\run-http-server.ps1 -InstallDependencies
-```
-
-Run a full developer verification pass:
-
-```powershell
-.\scripts\verify-windows.ps1 -RevitVersion 2024 -RevitInstallDir "C:\Program Files\Autodesk\Revit 2024"
-```
+- Only connect trusted MCP clients.
+- Review destructive operations before running them.
+- Prefer read-only inspection unless a document change is explicitly requested.

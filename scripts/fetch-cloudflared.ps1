@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    $OutputPath = Join-Path $repoRoot "dist\RevitMcp\app\cloudflared.exe"
+    $OutputPath = Join-Path $repoRoot "dist\NavisworksMcp\app\cloudflared.exe"
 }
 
 $outputDir = Split-Path -Parent $OutputPath
@@ -26,4 +26,3 @@ if (!(Test-Path $OutputPath)) {
 }
 
 Write-Host "Downloaded cloudflared.exe"
-

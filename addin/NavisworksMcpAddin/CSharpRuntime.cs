@@ -1,22 +1,24 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
+using Autodesk.Navisworks.Api;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace RevitMcpAddin;
+namespace NavisworksMcpAddin;
 
 public static class CSharpRuntime
 {
-    public static string Execute(string code, UIApplication app, UIDocument uidoc, Document doc)
+    public static string Execute(string code, Document doc)
     {
         var source = BuildSource(code);
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var references = BuildReferences();
         var compilation = CSharpCompilation.Create(
-            assemblyName: $"RevitMcpScript_{Guid.NewGuid():N}",
+            assemblyName: $"NavisworksMcpScript_{Guid.NewGuid():N}",
             syntaxTrees: new[] { syntaxTree },
             references: references,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -36,7 +38,7 @@ public static class CSharpRuntime
 
         stream.Position = 0;
         var assembly = Assembly.Load(stream.ToArray());
-        var scriptType = assembly.GetType("RevitMcpRuntime.Script")
+        var scriptType = assembly.GetType("NavisworksMcpRuntime.Script")
             ?? throw new InvalidOperationException("Compiled script type was not found.");
         var script = Activator.CreateInstance(scriptType)
             ?? throw new InvalidOperationException("Could not create compiled script instance.");
@@ -45,7 +47,7 @@ public static class CSharpRuntime
 
         try
         {
-            var value = run.Invoke(script, new object[] { app, uidoc, doc });
+            var value = run.Invoke(script, new object[] { doc });
             return value?.ToString() ?? string.Empty;
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
@@ -58,17 +60,16 @@ public static class CSharpRuntime
     private static string BuildSource(string code)
     {
         return $$"""
-using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
+using Autodesk.Navisworks.Api;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace RevitMcpRuntime
+namespace NavisworksMcpRuntime
 {
     public sealed class Script
     {
-        public string Run(UIApplication app, UIDocument uidoc, Document doc)
+        public string Run(Document doc)
         {
 {{Indent(code, 12)}}
         }

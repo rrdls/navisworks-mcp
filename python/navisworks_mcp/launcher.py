@@ -15,7 +15,7 @@ from tkinter import messagebox, ttk
 
 HTTP_PORT = "8000"
 HTTP_PATH = "/mcp"
-REVIT_WS_PORT = "8765"
+NAVISWORKS_WS_PORT = "8765"
 
 
 class ProcessPump:
@@ -59,7 +59,7 @@ class ProcessPump:
 class Launcher(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Revit MCP")
+        self.title("Navisworks MCP")
         self.geometry("720x440")
         self.minsize(640, 380)
 
@@ -80,7 +80,7 @@ class Launcher(tk.Tk):
         root = ttk.Frame(self, padding=16)
         root.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(root, text="Revit MCP", font=("Segoe UI", 18, "bold")).pack(anchor=tk.W)
+        ttk.Label(root, text="Navisworks MCP", font=("Segoe UI", 18, "bold")).pack(anchor=tk.W)
         ttk.Label(root, text="Start the local MCP server, create a tunnel, then copy the /mcp URL into your MCP client.").pack(
             anchor=tk.W, pady=(2, 14)
         )
@@ -122,14 +122,14 @@ class Launcher(tk.Tk):
             return
 
         http_busy = port_is_open("127.0.0.1", int(HTTP_PORT))
-        revit_busy = port_is_open("127.0.0.1", int(REVIT_WS_PORT))
-        if http_busy and revit_busy:
+        navisworks_busy = port_is_open("127.0.0.1", int(NAVISWORKS_WS_PORT))
+        if http_busy and navisworks_busy:
             self.server_status.set("MCP server: already running")
             self._handle_line("MCP server appears to already be running on ports 8000 and 8765.")
             return
-        if revit_busy and not http_busy:
+        if navisworks_busy and not http_busy:
             self.server_status.set("MCP server: cannot start")
-            self._handle_line("Port 8765 is already in use. Close the old Revit MCP server process, then try again.")
+            self._handle_line("Port 8765 is already in use. Close the old Navisworks MCP server process, then try again.")
             return
 
         env = os.environ.copy()
@@ -140,16 +140,16 @@ class Launcher(tk.Tk):
                 "MCP_HTTP_PORT": HTTP_PORT,
                 "MCP_HTTP_PATH": HTTP_PATH,
                 "MCP_DISABLE_DNS_REBINDING_PROTECTION": "true",
-                "REVIT_MCP_HOST": "127.0.0.1",
-                "REVIT_MCP_PORT": REVIT_WS_PORT,
+                "NAVISWORKS_MCP_HOST": "127.0.0.1",
+                "NAVISWORKS_MCP_PORT": NAVISWORKS_WS_PORT,
             }
         )
 
         if getattr(sys, "frozen", False):
-            server_exe = Path(sys.executable).with_name("RevitMcpServer.exe")
+            server_exe = Path(sys.executable).with_name("NavisworksMcpServer.exe")
             command = [str(server_exe)]
         else:
-            command = [sys.executable, "-m", "revit_mcp.server"]
+            command = [sys.executable, "-m", "navisworks_mcp.server"]
 
         self.server = ProcessPump(command, env, self.output)
         self.server.start()
@@ -161,12 +161,12 @@ class Launcher(tk.Tk):
             self.server.stop()
             stopped = True
 
-        allowed_names = {"RevitMcpServer.exe"}
+        allowed_names = {"NavisworksMcpServer.exe"}
         if not getattr(sys, "frozen", False):
             allowed_names.update({"python.exe", "pythonw.exe"})
 
         stopped_pids = stop_processes_listening_on_ports(
-            [int(HTTP_PORT), int(REVIT_WS_PORT)],
+            [int(HTTP_PORT), int(NAVISWORKS_WS_PORT)],
             allowed_names,
         )
         if stopped_pids:
@@ -223,7 +223,7 @@ class Launcher(tk.Tk):
         self.clipboard_append(value)
 
     def open_logs_folder(self) -> None:
-        folder = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "RevitMcp"
+        folder = Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "NavisworksMcp"
         folder.mkdir(parents=True, exist_ok=True)
         if os.name == "nt":
             os.startfile(folder)  # type: ignore[attr-defined]
@@ -244,8 +244,8 @@ class Launcher(tk.Tk):
 
         if "Uvicorn running on" in line or "Application startup complete" in line:
             self.server_status.set("MCP server: running")
-        if "Revit add-in connected" in line:
-            self.server_status.set("MCP server: running, Revit connected")
+        if "Navisworks plugin connected" in line:
+            self.server_status.set("MCP server: running, Navisworks connected")
 
         url = self._extract_public_url(line)
         if url:

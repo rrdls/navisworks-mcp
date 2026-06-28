@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $pythonDir = Join-Path $repoRoot "python"
 $venvDir = Join-Path $repoRoot ".venv-build"
-$distDir = Join-Path $repoRoot "dist\RevitMcp\app"
+$distDir = Join-Path $repoRoot "dist\NavisworksMcp\app"
 $workDir = Join-Path $repoRoot "dist\pyinstaller-work"
 
 if (!(Test-Path $venvDir)) {
@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
     --noconfirm `
     --clean `
     --onefile `
-    --name RevitMcpServer `
+    --name NavisworksMcpServer `
     --distpath $distDir `
     --workpath $workDir `
     --specpath (Join-Path $repoRoot "dist") `
@@ -35,12 +35,12 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
     --clean `
     --onefile `
     --windowed `
-    --name RevitMcpLauncher `
+    --name NavisworksMcpLauncher `
     --distpath $distDir `
     --workpath $workDir `
     --specpath (Join-Path $repoRoot "dist") `
     (Join-Path $repoRoot "packaging\pyinstaller\launcher_entry.py")
 
 Write-Host "Built:"
-Write-Host "  $(Join-Path $distDir 'RevitMcpServer.exe')"
-Write-Host "  $(Join-Path $distDir 'RevitMcpLauncher.exe')"
+Write-Host "  $(Join-Path $distDir 'NavisworksMcpServer.exe')"
+Write-Host "  $(Join-Path $distDir 'NavisworksMcpLauncher.exe')"

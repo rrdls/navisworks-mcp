@@ -1,15 +1,14 @@
 param(
-    [string]$RevitVersion = "2026"
+    [string]$BundleName = "NavisworksMcp.bundle"
 )
 
 $ErrorActionPreference = "Stop"
 
-$addinPath = Join-Path $env:APPDATA "Autodesk\Revit\Addins\$RevitVersion\RevitMcp.addin"
-if (Test-Path $addinPath) {
-    Remove-Item $addinPath
-    Write-Host "Removed $addinPath"
+$bundlePath = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\$BundleName"
+if (Test-Path $bundlePath) {
+    Remove-Item -Recurse -Force $bundlePath
+    Write-Host "Removed $bundlePath"
 }
 else {
-    Write-Host "Add-in file not found: $addinPath"
+    Write-Host "Plugin bundle not found: $bundlePath"
 }
-

@@ -15,12 +15,12 @@ if (!(Test-Path $pythonExe)) {
 
 $config = [ordered]@{
     mcpServers = [ordered]@{
-        "revit-mcp" = [ordered]@{
+        "navisworks-mcp" = [ordered]@{
             command = $pythonExe
-            args = @("-m", "revit_mcp.server")
+            args = @("-m", "navisworks_mcp.server")
             env = [ordered]@{
-                REVIT_MCP_HOST = $HostAddress
-                REVIT_MCP_PORT = "$Port"
+                NAVISWORKS_MCP_HOST = $HostAddress
+                NAVISWORKS_MCP_PORT = "$Port"
             }
         }
     }
@@ -40,4 +40,3 @@ else {
     $json | Set-Content -Encoding UTF8 $OutputPath
     Write-Host "Wrote MCP config to $OutputPath"
 }
-

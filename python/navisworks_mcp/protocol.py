@@ -5,7 +5,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class RevitCommand:
+class NavisworksCommand:
     id: str
     code: str
 
@@ -14,7 +14,7 @@ class RevitCommand:
 
 
 @dataclass(frozen=True)
-class RevitResponse:
+class NavisworksResponse:
     id: str
     ok: bool
     result: str | None = None
@@ -22,7 +22,7 @@ class RevitResponse:
     details: str | None = None
 
     @classmethod
-    def from_json(cls, payload: dict[str, Any]) -> "RevitResponse":
+    def from_json(cls, payload: dict[str, Any]) -> "NavisworksResponse":
         if not isinstance(payload.get("id"), str):
             raise ValueError("Response is missing string field 'id'.")
         if not isinstance(payload.get("ok"), bool):
@@ -41,4 +41,3 @@ def _optional_str(value: Any) -> str | None:
     if value is None:
         return None
     return str(value)
-

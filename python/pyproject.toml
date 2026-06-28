@@ -1,7 +1,7 @@
 [project]
-name = "revit-mcp"
+name = "navisworks-mcp"
 version = "0.1.0"
-description = "MCP server that forwards C# snippets to a Revit add-in over localhost WebSocket."
+description = "MCP server that forwards C# snippets to a Navisworks plugin over localhost WebSocket."
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.12.4",
@@ -15,8 +15,8 @@ build = [
 ]
 
 [project.scripts]
-revit-mcp = "revit_mcp.server:main"
-revit-mcp-launcher = "revit_mcp.launcher:main"
+navisworks-mcp = "navisworks_mcp.server:main"
+navisworks-mcp-launcher = "navisworks_mcp.launcher:main"
 
 [build-system]
 requires = ["hatchling"]

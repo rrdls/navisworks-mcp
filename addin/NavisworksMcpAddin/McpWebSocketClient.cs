@@ -1,11 +1,12 @@
-using System.Collections.Concurrent;
+using System;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using Autodesk.Revit.UI;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace RevitMcpAddin;
+namespace NavisworksMcpAddin;
 
 public sealed class McpWebSocketClient : IDisposable
 {
@@ -15,8 +16,8 @@ public sealed class McpWebSocketClient : IDisposable
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly ConcurrentQueue<RevitCommandRequest> _commandQueue;
-    private readonly ExternalEvent _externalEvent;
+    private readonly Func<NavisworksCommandRequest, NavisworksCommandResponse> _execute;
+    private readonly SynchronizationContext? _syncContext;
     private readonly Uri _serverUri;
     private readonly string? _token;
     private readonly CancellationTokenSource _cts = new();
@@ -25,44 +26,26 @@ public sealed class McpWebSocketClient : IDisposable
     private ClientWebSocket? _socket;
     private Task? _runTask;
 
-    public McpWebSocketClient(ConcurrentQueue<RevitCommandRequest> commandQueue, ExternalEvent externalEvent)
+    public McpWebSocketClient(
+        Func<NavisworksCommandRequest, NavisworksCommandResponse> execute,
+        SynchronizationContext? syncContext)
     {
-        _commandQueue = commandQueue;
-        _externalEvent = externalEvent;
-        var url = Environment.GetEnvironmentVariable("REVIT_MCP_WS_URL") ?? "ws://127.0.0.1:8765";
+        _execute = execute;
+        _syncContext = syncContext;
+        var url = Environment.GetEnvironmentVariable("NAVISWORKS_MCP_WS_URL")
+            ?? "ws://127.0.0.1:8765";
         _serverUri = new Uri(url);
-        _token = Environment.GetEnvironmentVariable("REVIT_MCP_TOKEN");
+        _token = Environment.GetEnvironmentVariable("NAVISWORKS_MCP_TOKEN");
     }
 
     public void Start()
     {
-        _runTask = Task.Run(RunAsync);
-    }
-
-    public async Task SendAsync(RevitCommandResponse response)
-    {
-        var socket = _socket;
-        if (socket is null || socket.State != WebSocketState.Open)
+        if (_runTask is not null && !_runTask.IsCompleted)
         {
             return;
         }
 
-        var json = JsonSerializer.Serialize(response, JsonOptions);
-        var buffer = Encoding.UTF8.GetBytes(json);
-
-        await _sendLock.WaitAsync(_cts.Token).ConfigureAwait(false);
-        try
-        {
-            await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cts.Token).ConfigureAwait(false);
-        }
-        catch
-        {
-            // The receive loop handles reconnects. Dropping a response is preferable to blocking Revit.
-        }
-        finally
-        {
-            _sendLock.Release();
-        }
+        _runTask = Task.Run(RunAsync);
     }
 
     public void Dispose()
@@ -133,16 +116,66 @@ public sealed class McpWebSocketClient : IDisposable
             while (!result.EndOfMessage);
 
             var json = Encoding.UTF8.GetString(message.ToArray());
-            var request = JsonSerializer.Deserialize<RevitCommandRequest>(json, JsonOptions);
+            var request = JsonSerializer.Deserialize<NavisworksCommandRequest>(json, JsonOptions);
             if (request is null || string.IsNullOrWhiteSpace(request.Id) || string.IsNullOrWhiteSpace(request.Code))
             {
                 McpLog.Error($"Ignored invalid MCP request payload: {json}");
                 continue;
             }
 
-            McpLog.Info($"Queued MCP command {request.Id}.");
-            _commandQueue.Enqueue(request);
-            _externalEvent.Raise();
+            McpLog.Info($"Received MCP command {request.Id}.");
+            var response = await ExecuteAsync(request).ConfigureAwait(false);
+            await SendAsync(response).ConfigureAwait(false);
+        }
+    }
+
+    private Task<NavisworksCommandResponse> ExecuteAsync(NavisworksCommandRequest request)
+    {
+        if (_syncContext is null)
+        {
+            return Task.FromResult(_execute(request));
+        }
+
+        var completion = new TaskCompletionSource<NavisworksCommandResponse>();
+        _syncContext.Post(
+            _ =>
+            {
+                try
+                {
+                    completion.SetResult(_execute(request));
+                }
+                catch (Exception ex)
+                {
+                    completion.SetException(ex);
+                }
+            },
+            null);
+        return completion.Task;
+    }
+
+    private async Task SendAsync(NavisworksCommandResponse response)
+    {
+        var socket = _socket;
+        if (socket is null || socket.State != WebSocketState.Open)
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(response, JsonOptions);
+        var buffer = Encoding.UTF8.GetBytes(json);
+
+        await _sendLock.WaitAsync(_cts.Token).ConfigureAwait(false);
+        try
+        {
+            await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // The receive loop handles reconnects. Dropping a response is preferable to blocking Navisworks.
+        }
+        finally
+        {
+            _sendLock.Release();
         }
     }
 }

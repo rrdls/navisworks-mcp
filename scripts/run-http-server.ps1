@@ -2,8 +2,8 @@ param(
     [string]$HttpHostAddress = "127.0.0.1",
     [int]$HttpPort = 8000,
     [string]$HttpPath = "/mcp",
-    [string]$RevitWsHostAddress = "127.0.0.1",
-    [int]$RevitWsPort = 8765,
+    [string]$NavisworksWsHostAddress = "127.0.0.1",
+    [int]$NavisworksWsPort = 8765,
     [string]$PublicHost = "",
     [switch]$EnableHostProtection,
     [switch]$InstallDependencies,
@@ -41,12 +41,12 @@ else {
     Remove-Item Env:MCP_ALLOWED_ORIGINS -ErrorAction SilentlyContinue
 }
 
-$env:REVIT_MCP_HOST = $RevitWsHostAddress
-$env:REVIT_MCP_PORT = "$RevitWsPort"
+$env:NAVISWORKS_MCP_HOST = $NavisworksWsHostAddress
+$env:NAVISWORKS_MCP_PORT = "$NavisworksWsPort"
 if (![string]::IsNullOrWhiteSpace($Token)) {
-    $env:REVIT_MCP_TOKEN = $Token
+    $env:NAVISWORKS_MCP_TOKEN = $Token
 }
 
 Write-Host "Starting MCP HTTP server at http://$HttpHostAddress`:$HttpPort$HttpPath"
-Write-Host "Revit add-in WebSocket remains ws://$RevitWsHostAddress`:$RevitWsPort"
-& $pythonExe -m revit_mcp.server
+Write-Host "Navisworks plugin WebSocket remains ws://$NavisworksWsHostAddress`:$NavisworksWsPort"
+& $pythonExe -m navisworks_mcp.server

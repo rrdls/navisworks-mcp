@@ -1,5 +1,5 @@
 param(
-    [string[]]$RevitVersions = @("2021", "2022", "2023", "2024", "2025", "2026"),
+    [string[]]$NavisworksVersions = @("2021", "2022", "2023", "2024", "2025", "2026"),
     [switch]$SkipPythonExe,
     [switch]$SkipCloudflared,
     [switch]$SkipInstaller
@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$packageRoot = Join-Path $repoRoot "dist\RevitMcp"
+$packageRoot = Join-Path $repoRoot "dist\NavisworksMcp"
 
 New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
 
@@ -20,7 +20,7 @@ if (!$SkipCloudflared) {
     & (Join-Path $PSScriptRoot "fetch-cloudflared.ps1")
 }
 
-& (Join-Path $PSScriptRoot "package-addins.ps1") -RevitVersions $RevitVersions -Configuration Release
+& (Join-Path $PSScriptRoot "package-addins.ps1") -NavisworksVersions $NavisworksVersions -Configuration Release
 & (Join-Path $PSScriptRoot "check-release-layout.ps1") -PackageRoot $packageRoot -RequireAddin
 
 if (!$SkipInstaller) {
@@ -44,7 +44,7 @@ if (!$SkipInstaller) {
     if ($isccPath) {
         Write-Host "Building installer with Inno Setup:"
         Write-Host "  $isccPath"
-        & $isccPath (Join-Path $repoRoot "installer\RevitMcp.iss")
+        & $isccPath (Join-Path $repoRoot "installer\NavisworksMcp.iss")
     }
     else {
         Write-Warning "Inno Setup ISCC.exe was not found. Install Inno Setup 6 or add ISCC.exe to PATH."

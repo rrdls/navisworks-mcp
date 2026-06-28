@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage
+  SchemaVersion="1.0"
+  AutodeskProduct="Navisworks"
+  Name="Navisworks MCP"
+  AppVersion="0.1.0"
+  ProductCode="{3F964BBE-9345-4DF6-8905-1F1C0698A9F7}">
+  <CompanyDetails Name="RRDLS" />
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="Navisworks*" SeriesMin="Nw{NAVISWORKS_VERSION}" SeriesMax="Nw{NAVISWORKS_VERSION}" />
+    <ComponentEntry
+      AppName="Navisworks MCP"
+      ModuleName="./Contents/NavisworksMcpAddin.dll" />
+  </Components>
+</ApplicationPackage>

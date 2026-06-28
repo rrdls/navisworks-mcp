@@ -22,12 +22,12 @@ if ($InstallDependencies) {
     & $pythonExe -m pip install -e $pythonDir
 }
 
-$env:REVIT_MCP_HOST = $HostAddress
-$env:REVIT_MCP_PORT = "$Port"
+$env:NAVISWORKS_MCP_HOST = $HostAddress
+$env:NAVISWORKS_MCP_PORT = "$Port"
 if (![string]::IsNullOrWhiteSpace($Token)) {
-    $env:REVIT_MCP_TOKEN = $Token
+    $env:NAVISWORKS_MCP_TOKEN = $Token
 }
 
-Write-Host "Starting Revit MCP server on ws://$HostAddress`:$Port"
+Write-Host "Starting Navisworks MCP server on ws://$HostAddress`:$Port"
 Write-Host "This process also speaks MCP over stdio when launched by an MCP client."
-& $pythonExe -m revit_mcp.server
+& $pythonExe -m navisworks_mcp.server

@@ -13,18 +13,18 @@ from typing import Any
 
 import websockets
 
-from .protocol import RevitCommand, RevitResponse
+from .protocol import NavisworksCommand, NavisworksResponse
 
-LOGGER = logging.getLogger("revit_mcp.websocket")
+LOGGER = logging.getLogger("navisworks_mcp.websocket")
 
 
 @dataclass
 class _PendingCall:
-    future: asyncio.Future[RevitResponse]
+    future: asyncio.Future[NavisworksResponse]
     code: str
 
 
-class RevitBridge:
+class NavisworksBridge:
     def __init__(self, host: str = "127.0.0.1", port: int = 8765, token: str | None = None) -> None:
         self.host = host
         self.port = port
@@ -43,13 +43,13 @@ class RevitBridge:
             if self._thread and self._thread.is_alive():
                 return
 
-            self._thread = threading.Thread(target=self._run_loop, name="revit-mcp-websocket", daemon=True)
+            self._thread = threading.Thread(target=self._run_loop, name="navisworks-mcp-websocket", daemon=True)
             self._thread.start()
 
         if not self._ready.wait(timeout=5):
-            raise RuntimeError("Timed out starting Revit WebSocket server.")
+            raise RuntimeError("Timed out starting Navisworks WebSocket server.")
         if self._start_error:
-            raise RuntimeError("Could not start Revit WebSocket server.") from self._start_error
+            raise RuntimeError("Could not start Navisworks WebSocket server.") from self._start_error
 
     def stop(self) -> None:
         loop = self._loop
@@ -57,7 +57,7 @@ class RevitBridge:
             return
 
         async def shutdown() -> None:
-            self._fail_pending("Revit MCP bridge stopped.")
+            self._fail_pending("Navisworks MCP bridge stopped.")
             if self._client is not None:
                 await self._client.close()
                 self._client = None
@@ -74,7 +74,7 @@ class RevitBridge:
     def is_connected(self) -> bool:
         return _websocket_is_open(self._client)
 
-    def run_code(self, code: str, timeout_seconds: float = 60) -> RevitResponse:
+    def run_code(self, code: str, timeout_seconds: float = 60) -> NavisworksResponse:
         if not code or not code.strip():
             raise ValueError("code must not be empty")
 
@@ -82,8 +82,8 @@ class RevitBridge:
         if not self._loop:
             raise RuntimeError("WebSocket loop is not running.")
 
-        command = RevitCommand(id=str(uuid.uuid4()), code=code)
-        future: ThreadFuture[RevitResponse] = asyncio.run_coroutine_threadsafe(
+        command = NavisworksCommand(id=str(uuid.uuid4()), code=code)
+        future: ThreadFuture[NavisworksResponse] = asyncio.run_coroutine_threadsafe(
             self._send_and_wait(command),
             self._loop,
         )
@@ -91,14 +91,14 @@ class RevitBridge:
             return future.result(timeout=timeout_seconds)
         except ThreadTimeoutError as exc:
             future.cancel()
-            raise TimeoutError(f"Timed out waiting for Revit response after {timeout_seconds} seconds.") from exc
+            raise TimeoutError(f"Timed out waiting for Navisworks response after {timeout_seconds} seconds.") from exc
 
-    async def _send_and_wait(self, command: RevitCommand) -> RevitResponse:
+    async def _send_and_wait(self, command: NavisworksCommand) -> NavisworksResponse:
         client = self._client
         if not _websocket_is_open(client):
-            raise RuntimeError("Revit add-in is not connected. Open Revit with the Revit MCP add-in loaded.")
+            raise RuntimeError("Navisworks plugin is not connected. Open Navisworks and run the Navisworks MCP plugin.")
 
-        future: asyncio.Future[RevitResponse] = asyncio.get_running_loop().create_future()
+        future: asyncio.Future[NavisworksResponse] = asyncio.get_running_loop().create_future()
         self._pending[command.id] = _PendingCall(future=future, code=command.code)
 
         try:
@@ -122,15 +122,15 @@ class RevitBridge:
 
     async def _serve(self) -> None:
         self._server = await websockets.serve(self._handle_client, self.host, self.port)
-        LOGGER.info("Revit WebSocket server listening on ws://%s:%s", self.host, self.port)
+        LOGGER.info("Navisworks WebSocket server listening on ws://%s:%s", self.host, self.port)
 
     async def _handle_client(self, websocket: Any) -> None:
         if _websocket_is_open(self._client):
-            await websocket.close(code=1013, reason="A Revit client is already connected.")
+            await websocket.close(code=1013, reason="A Navisworks client is already connected.")
             return
 
         self._client = websocket
-        LOGGER.info("Revit add-in connected.")
+        LOGGER.info("Navisworks plugin connected.")
 
         try:
             async for raw_message in websocket:
@@ -138,8 +138,8 @@ class RevitBridge:
         finally:
             if self._client is websocket:
                 self._client = None
-            self._fail_pending("Revit add-in disconnected before returning a response.")
-            LOGGER.info("Revit add-in disconnected.")
+            self._fail_pending("Navisworks plugin disconnected before returning a response.")
+            LOGGER.info("Navisworks plugin disconnected.")
 
     async def _handle_message(self, raw_message: str | bytes) -> None:
         if isinstance(raw_message, bytes):
@@ -153,7 +153,7 @@ class RevitBridge:
             await self._handle_hello(payload)
             return
 
-        response = RevitResponse.from_json(payload)
+        response = NavisworksResponse.from_json(payload)
         pending = self._pending.get(response.id)
         if pending and not pending.future.done():
             pending.future.set_result(response)
@@ -165,7 +165,7 @@ class RevitBridge:
             if self._client:
                 await self._client.close(code=1008, reason="Invalid token.")
             return
-        LOGGER.info("Revit add-in handshake accepted.")
+        LOGGER.info("Navisworks plugin handshake accepted.")
 
     def _fail_pending(self, message: str) -> None:
         for pending in list(self._pending.values()):
@@ -174,11 +174,11 @@ class RevitBridge:
         self._pending.clear()
 
 
-def bridge_from_env() -> RevitBridge:
-    host = os.getenv("REVIT_MCP_HOST", "127.0.0.1")
-    port = int(os.getenv("REVIT_MCP_PORT", "8765"))
-    token = os.getenv("REVIT_MCP_TOKEN") or None
-    bridge = RevitBridge(host=host, port=port, token=token)
+def bridge_from_env() -> NavisworksBridge:
+    host = os.getenv("NAVISWORKS_MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("NAVISWORKS_MCP_PORT", "8765"))
+    token = os.getenv("NAVISWORKS_MCP_TOKEN") or None
+    bridge = NavisworksBridge(host=host, port=port, token=token)
     bridge.start()
     return bridge
 

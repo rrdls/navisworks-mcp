@@ -1,6 +1,5 @@
-from revit_mcp.server import main
+from navisworks_mcp.server import main
 
 
 if __name__ == "__main__":
     main()
-

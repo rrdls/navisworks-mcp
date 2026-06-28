@@ -1,6 +1,6 @@
-namespace RevitMcpAddin;
+namespace NavisworksMcpAddin;
 
-public sealed class RevitCommandResponse
+public sealed class NavisworksCommandResponse
 {
     public string Id { get; set; } = string.Empty;
     public bool Ok { get; set; }
@@ -8,4 +8,3 @@ public sealed class RevitCommandResponse
     public string? Error { get; set; }
     public string? Details { get; set; }
 }
-

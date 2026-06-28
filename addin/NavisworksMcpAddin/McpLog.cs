@@ -1,6 +1,7 @@
+using System;
 using System.IO;
 
-namespace RevitMcpAddin;
+namespace NavisworksMcpAddin;
 
 public static class McpLog
 {
@@ -22,7 +23,7 @@ public static class McpLog
         {
             var directory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "RevitMcp");
+                "NavisworksMcp");
             Directory.CreateDirectory(directory);
 
             var line = $"{DateTimeOffset.Now:O} [{level}] {message}{Environment.NewLine}";
@@ -33,7 +34,7 @@ public static class McpLog
         }
         catch
         {
-            // Logging must never interfere with Revit API execution.
+            // Logging must never interfere with Navisworks API execution.
         }
     }
 }
